@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" Sdk="Microsoft.Docker.Sdk">
+  <PropertyGroup Label="Globals">
+    <ProjectVersion>2.1</ProjectVersion>
+    <DockerTargetOS>Linux</DockerTargetOS>
+    <ProjectGuid>a4a45157-3532-44a8-aef7-805554432aba</ProjectGuid>
+    <DockerLaunchAction>LaunchBrowser</DockerLaunchAction>
+    <DockerServiceUrl>{Scheme}://localhost:{ServicePort}/swagger</DockerServiceUrl>
+    <DockerServiceName>zhaoxi.manage.identityapi</DockerServiceName>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="docker-compose-auth - 复制 - 复制.override.yml">
+      <DependentUpon>docker-compose-auth.yml</DependentUpon>
+    </None>
+    <None Include="docker-compose-auth - 复制(2).override.yml">
+      <DependentUpon>docker-compose-auth.yml</DependentUpon>
+    </None>
+    <None Include="docker-compose-auth - 复制.override.yml">
+      <DependentUpon>docker-compose-auth.yml</DependentUpon>
+    </None>
+    <None Include="docker-compose.yml" />
+    <None Include="docker-compose-vueweb.yml" />
+    <None Include="docker-compose-auth.override.yml">
+      <DependentUpon>docker-compose-auth.yml</DependentUpon>
+    </None>
+    <None Include="docker-compose-auth.yml" />
+    <None Include=".dockerignore" />
+  </ItemGroup>
+</Project>

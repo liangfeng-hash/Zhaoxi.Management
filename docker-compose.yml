@@ -1,0 +1,58 @@
+version: '3.4'
+services: 
+  zhaoximanage_sqlserver:
+    image: "mcr.microsoft.com/mssql/server:2019-latest"
+    container_name: "container_sqlserver"
+    ports:
+      - "1433:1433"
+    volumes:
+      - "./config_database/mssql:/var/opt/mssql"
+    restart: always
+    environment:
+      - TZ=Asia/Shanghai
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=Sa123456
+    depends_on:
+      - "zhaoximanage_webapi"
+  zhaoximanage_webapi:
+    image: "zhaoximanage_webapi:20230424"
+    build:
+      context: "./Zhaoxi.Management"
+      dockerfile: "./Zhaoxi.Manage.MentApi/Dockerfile"
+    container_name: "container_webapi"
+    ports:
+        - 8007:80
+    volumes:
+      - "./config_webapi/appsettings.json:/app/appsettings.json"
+    environment:
+        - ASPNETCORE_ENVIRONMENT=Development
+    restart: always
+  zhaoximanage_auth:
+    image: "zhaoximanage_auth:20230417"
+    build:
+      context: "./Zhaoxi.Management"
+      dockerfile: "./Zhaoxi.Manage.IdentityApi/Dockerfile"
+    container_name: "container_auth"
+    ports:
+        - 8008:80
+    volumes:
+      - "./config_auth/appsettings.json:/app/appsettings.json"
+    environment:
+        - ASPNETCORE_ENVIRONMENT=Development
+    restart: always
+  vue-web-nginx:
+    build:
+      context: "./vue3-project"
+      dockerfile: "Dockerfile"
+    container_name: "container_vueweb"
+    ports:
+        - 443:443
+    volumes:
+      - "./config_vue/nginx.conf:/etc/nginx/nginx.conf"
+      - "./ssl:/usr/share/nginx/ssl"
+    restart: always
+    networks:
+      - geosphere-network-web
+networks:
+  geosphere-network-web:
+   driver: bridge
