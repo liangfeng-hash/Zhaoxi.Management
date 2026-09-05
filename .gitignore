@@ -361,3 +361,10 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+###############################################################################
+# 环境专属配置：含真实凭据，只放在各自机器上，不进版本库
+# 新环境部署时复制同名 .example 文件改名后填入真实值
+###############################################################################
+appsettings.Development.json
+appsettings.Production.json
+appsettings.*.local.json

@@ -21,9 +21,9 @@ namespace Zhaoxi.Manage.Common.Notice
                mail.UseDefaultCredentials = false;//在.framework或mvc下使用这个
                mail.Port = 25;//端口号
                mail.DeliveryMethod = SmtpDeliveryMethod.Network;
-               mail.Credentials = new System.Net.NetworkCredential("sender@example.com", "***REMOVED***");
+               mail.Credentials = new System.Net.NetworkCredential("__REPLACE_ME__", "__REPLACE_ME__");
            },
-           "receiver@example.com")
+           "__REPLACE_ME__")
         {
 
         }
@@ -54,9 +54,9 @@ namespace Zhaoxi.Manage.Common.Notice
                mail.UseDefaultCredentials = false;//在.framework或mvc下使用这个
                mail.Port = 25;//端口号
                mail.DeliveryMethod = SmtpDeliveryMethod.Network;
-               mail.Credentials = new System.Net.NetworkCredential("receiver@example.com", "***REMOVED***");
+               mail.Credentials = new System.Net.NetworkCredential("__REPLACE_ME__", "__REPLACE_ME__");
            },
-           "receiver@example.com"
+           "__REPLACE_ME__"
         );
 
 

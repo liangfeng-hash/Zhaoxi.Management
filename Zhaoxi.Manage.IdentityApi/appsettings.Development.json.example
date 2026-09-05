@@ -1,0 +1,8 @@
+{
+  "JWTTokenOptions": {
+    "SecurityKey": "16位以上随机密钥-两个API必须完全一致否则随机401"
+  },
+  "ConnectionStrings": {
+    "ConnectionString": "Data Source=数据库主机,1433;Initial Catalog=Zhaoxi.Management;User ID=数据库账号;Password=数据库密码;MultipleActiveResultSets=true;TrustServerCertificate=True;Encrypt=False"
+  }
+}

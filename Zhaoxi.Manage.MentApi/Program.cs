@@ -67,7 +67,11 @@ namespace Zhaoxi.Manage.mentApi
 
             builder.AuthorizationExt(); //Jwt鉴权授权
 
+            builder.Services.AddHealthChecks();
+
             WebApplication app = builder.Build();
+
+            app.MapHealthChecks("/health").AllowAnonymous();
 
             //读取文件的中间件
             DownloadImagesExtensions.UseDownloadImages(app, Directory.GetCurrentDirectory());

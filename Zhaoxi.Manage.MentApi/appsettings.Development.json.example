@@ -1,0 +1,18 @@
+{
+  "SmtpClientConfig": {
+    "FromAddr": "发件邮箱地址",
+    "FromAddrPass": "邮箱SMTP授权码",
+    "ToAddrList": [
+      "收件邮箱地址"
+    ]
+  },
+  "Admin": {
+    "password": "初始管理员密码"
+  },
+  "ConnectionStrings": {
+    "ConnectionString": "Data Source=数据库主机,1433;Initial Catalog=Zhaoxi.Management;User ID=数据库账号;Password=数据库密码;MultipleActiveResultSets=true;TrustServerCertificate=True;Encrypt=False"
+  },
+  "JWTTokenOptions": {
+    "SecurityKey": "16位以上随机密钥-两个API必须完全一致否则随机401"
+  }
+}

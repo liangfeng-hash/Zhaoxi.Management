@@ -43,7 +43,7 @@ namespace Zhaoxi.Manage.MentApi.Utility.Filters
                 //SMSTool.SendValidateCode("13800000000", "123456");
 
 
-        //        new EMailTool().SendMail("sender@example.com", "高级班的后台管理系统测试邮件发送",
+        //        new EMailTool().SendMail("__REPLACE_ME__", "高级班的后台管理系统测试邮件发送",
         //new String[] {
         //            "user4@example.com",
         //            "yeyun123@outlook.com",
@@ -68,8 +68,8 @@ namespace Zhaoxi.Manage.MentApi.Utility.Filters
            //         mail.DeliveryMethod = SmtpDeliveryMethod.Network;
            //         mail.Credentials = new System.Net.NetworkCredential(_SmtpClientConfig.FromAddr, _SmtpClientConfig.FromAddrPass);
            //     },
-           //"receiver@example.com",
-           //"receiver@example.com");
+           //"__REPLACE_ME__",
+           //"__REPLACE_ME__");
 
 
            //     eMailTool.SendMail("朝夕教育后台管理系统", $"{context.Exception.Message}");

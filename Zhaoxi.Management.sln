@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.4.33103.184
+# Visual Studio Version 18
+VisualStudioVersion = 18.2.11415.280
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zhaoxi.Manage.Models", "Zhaoxi.Manage.Models\Zhaoxi.Manage.Models.csproj", "{7164D146-2F75-4163-87F4-13D043FF3B0A}"
 EndProject
@@ -14,6 +14,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zhaoxi.Manage.BusinessInterface", "Zhaoxi.Manage.BusinessInterface\Zhaoxi.Manage.BusinessInterface.csproj", "{2CACC161-7CB5-4175-8824-B147F6AB53E9}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zhaoxi.Manage.IdentityApi", "Zhaoxi.Manage.IdentityApi\Zhaoxi.Manage.IdentityApi.csproj", "{2DB4246A-644D-4E55-8AE7-D41365D0044B}"
+EndProject
+Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{81DDED9D-158B-E303-5F62-77A2896D2A5A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -45,6 +47,10 @@ Global
 		{2DB4246A-644D-4E55-8AE7-D41365D0044B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2DB4246A-644D-4E55-8AE7-D41365D0044B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2DB4246A-644D-4E55-8AE7-D41365D0044B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{81DDED9D-158B-E303-5F62-77A2896D2A5A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{81DDED9D-158B-E303-5F62-77A2896D2A5A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{81DDED9D-158B-E303-5F62-77A2896D2A5A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{81DDED9D-158B-E303-5F62-77A2896D2A5A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
