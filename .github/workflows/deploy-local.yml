@@ -21,6 +21,16 @@ env:
   GIT_CONFIG_COUNT: '1'
   GIT_CONFIG_KEY_0: 'core.fsmonitor'
   GIT_CONFIG_VALUE_0: 'false'
+  
+  MENTAPI_SITE:   'C:\inetpub\zhaoxiAPI'
+  MENTAPI_POOL:   'zhaoxiAPI'
+  MENTAPI_HEALTH: 'http://localhost:8000/health'
+
+  IDENTITY_SITE:  'C:\inetpub\IdentityApi'
+  IDENTITY_POOL:  'IdentityApi'
+  IDENTITY_PORT:  '8001'
+
+  BACKUP_ROOT:    'C:\deploy-backup'
 
 jobs:
   build:
@@ -64,3 +74,101 @@ jobs:
           Get-ChildItem "$env:RUNNER_TEMP\publish\mentapi" -Name | Select-Object -First 20
           Write-Host "`n--- 确认 appsettings.json 是占位符版 ---"
           Get-Content "$env:RUNNER_TEMP\publish\mentapi\appsettings.json" | Select-String "REPLACE_ME"
+      - name: 备份当前站点
+        shell: pwsh
+        run: |
+          $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+          foreach ($pair in @(
+              @{ Src = $env:MENTAPI_SITE;  Name = 'mentapi'  },
+              @{ Src = $env:IDENTITY_SITE; Name = 'identityapi' })) {
+
+            $dest = Join-Path $env:BACKUP_ROOT "$($pair.Name)\$stamp"
+            Write-Host "备份 $($pair.Src) -> $dest"
+            robocopy $pair.Src $dest /E /XD logs FileUpload /NFL /NDL /NJH /NJS /R:2 /W:1 | Out-Null
+
+            # robocopy 退出码 <8 都算成功，必须手动判断
+            if ($LASTEXITCODE -ge 8) { Write-Error "备份失败 code=$LASTEXITCODE"; exit 1 }
+
+            # 只保留最近 5 份
+            $keepRoot = Join-Path $env:BACKUP_ROOT $pair.Name
+            Get-ChildItem $keepRoot -Directory | Sort-Object Name -Descending |
+              Select-Object -Skip 5 | Remove-Item -Recurse -Force
+          }
+          exit 0
+
+      # ---------- 停服务 ----------
+      - name: 放置 app_offline.htm
+        shell: pwsh
+        run: |
+          $html = '<html><head><meta charset="utf-8"></head><body><h2>正在部署，请稍候…</h2></body></html>'
+          foreach ($site in @($env:MENTAPI_SITE, $env:IDENTITY_SITE)) {
+            $html | Set-Content -Path (Join-Path $site 'app_offline.htm') -Encoding UTF8
+          }
+          # 给 ASP.NET Core Module 时间优雅退出并释放文件锁
+          Start-Sleep -Seconds 5
+
+      # ---------- 同步产物 ----------
+      - name: 同步 MentApi
+        shell: pwsh
+        run: |
+          robocopy "$env:RUNNER_TEMP\publish\mentapi" $env:MENTAPI_SITE /MIR `
+            /XF appsettings.Production.json appsettings.Development.json app_offline.htm `
+            /XD logs log4 FileUpload `
+            /NFL /NDL /NJH /NJS /R:3 /W:2
+          if ($LASTEXITCODE -ge 8) { Write-Error "同步失败 code=$LASTEXITCODE"; exit 1 }
+          exit 0
+
+      - name: 同步 IdentityApi
+        shell: pwsh
+        run: |
+          robocopy "$env:RUNNER_TEMP\publish\identityapi" $env:IDENTITY_SITE /MIR `
+            /XF appsettings.Production.json appsettings.Development.json app_offline.htm `
+            /XD logs log4 `
+            /NFL /NDL /NJH /NJS /R:3 /W:2
+          if ($LASTEXITCODE -ge 8) { Write-Error "同步失败 code=$LASTEXITCODE"; exit 1 }
+          exit 0
+
+      # ---------- 起服务 ----------
+      # if: always() —— 就算前面失败也要恢复站点，不能让它一直挂着维护页
+      - name: 移除 app_offline.htm
+        if: always()
+        shell: pwsh
+        run: |
+          foreach ($site in @($env:MENTAPI_SITE, $env:IDENTITY_SITE)) {
+            Remove-Item (Join-Path $site 'app_offline.htm') -Force -ErrorAction SilentlyContinue
+          }
+
+      - name: 回收应用池
+        shell: pwsh
+        run: |
+          Import-Module WebAdministration
+          foreach ($pool in @($env:MENTAPI_POOL, $env:IDENTITY_POOL)) {
+            if ((Get-WebAppPoolState -Name $pool).Value -ne 'Started') {
+              Start-WebAppPool -Name $pool
+            } else {
+              Restart-WebAppPool -Name $pool
+            }
+            Write-Host "$pool -> $((Get-WebAppPoolState -Name $pool).Value)"
+          }
+
+      # ---------- 验证 ----------
+      - name: 健康检查
+        shell: pwsh
+        run: |
+          # MentApi 有 /health 端点（Program.cs 里 MapHealthChecks），直接探
+          $ok = $false
+          for ($i = 1; $i -le 12; $i++) {
+            try {
+              $r = Invoke-WebRequest $env:MENTAPI_HEALTH -UseBasicParsing -TimeoutSec 5
+              if ($r.StatusCode -eq 200) { $ok = $true; break }
+            } catch { }
+            Write-Host "第 $i 次探测未通过，3 秒后重试…"
+            Start-Sleep -Seconds 3
+          }
+          if (-not $ok) { Write-Error "MentApi 健康检查失败"; exit 1 }
+          Write-Host "MentApi /health 通过"
+
+          # IdentityApi 没有 /health 端点，退而求其次探端口
+          $tcp = Test-NetConnection -ComputerName localhost -Port ([int]$env:IDENTITY_PORT) -WarningAction SilentlyContinue
+          if (-not $tcp.TcpTestSucceeded) { Write-Error "IdentityApi 端口不通"; exit 1 }
+          Write-Host "IdentityApi 端口 $env:IDENTITY_PORT 可连接"
