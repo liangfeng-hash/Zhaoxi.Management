@@ -1,0 +1,10 @@
+{
+  "JWTTokenOptions": {
+    "Audience": "__JWT_AUDIENCE__",
+    "Issuer": "__JWT_ISSUER__",
+    "SecurityKey": "__JWT_SECURITY_KEY__"
+  },
+  "ConnectionStrings": {
+    "ConnectionString": "__DB_CONNECTION_STRING__"
+  }
+}

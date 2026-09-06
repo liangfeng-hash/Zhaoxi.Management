@@ -73,6 +73,8 @@ namespace Zhaoxi.Manage.mentApi
 
             app.MapHealthChecks("/health").AllowAnonymous();
 
+            app.MapHealthChecks("/health2").AllowAnonymous();
+
             //读取文件的中间件
             DownloadImagesExtensions.UseDownloadImages(app, Directory.GetCurrentDirectory());
 
