@@ -139,13 +139,13 @@ jobs:
           }
 
       - name: 回收应用池
-          shell: pwsh
-          run: |
-            $appcmd = "$env:SystemRoot\System32\inetsrv\appcmd.exe"
-            foreach ($pool in @($env:MENTAPI_POOL, $env:IDENTITY_POOL)) {
-              & $appcmd recycle apppool /apppool.name:"$pool"
-              Write-Host "$pool 已回收"
-            }
+        shell: pwsh
+        run: |
+          $appcmd = "$env:SystemRoot\System32\inetsrv\appcmd.exe"
+          foreach ($pool in @($env:MENTAPI_POOL, $env:IDENTITY_POOL)) {
+            & $appcmd recycle apppool /apppool.name:"$pool"
+            Write-Host "$pool 已回收"
+          }
 
       # ---------- 验证 ----------
       - name: 健康检查
