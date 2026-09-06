@@ -1,0 +1,57 @@
+name: 部署到本机
+
+# 先只允许手动触发，验证通过后再改成 push 自动触发
+on:
+  workflow_dispatch:
+
+# 同一时间只允许一个发布流程，避免两次发布互相踩
+concurrency:
+  group: deploy-local-management
+  cancel-in-progress: false
+
+env:
+  DOTNET_NOLOGO: 'true'
+  DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+
+jobs:
+  build:
+    # 靠 label 找机器：self-hosted + windows 是自带的，local 是你配 runner 时填的
+    runs-on: [self-hosted, windows, local]
+
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 环境自检
+        shell: pwsh
+        run: |
+          Write-Host "主机名: $env:COMPUTERNAME"
+          Write-Host "工作目录: $PWD"
+          Write-Host "`n--- SDK ---"
+          dotnet --list-sdks
+          Write-Host "`n--- 代码拉下来了吗 ---"
+          Get-ChildItem -Name | Select-Object -First 15
+
+      - name: 还原依赖
+        shell: pwsh
+        run: dotnet restore Zhaoxi.Management.sln
+
+      - name: 构建 MentApi
+        shell: pwsh
+        run: |
+          dotnet publish Zhaoxi.Manage.MentApi\Zhaoxi.Manage.MentApi.csproj `
+            -c Release --no-restore -o "$env:RUNNER_TEMP\publish\mentapi"
+
+      - name: 构建 IdentityApi
+        shell: pwsh
+        run: |
+          dotnet publish Zhaoxi.Manage.IdentityApi\Zhaoxi.Manage.IdentityApi.csproj `
+            -c Release --no-restore -o "$env:RUNNER_TEMP\publish\identityapi"
+
+      - name: 检查产物
+        shell: pwsh
+        run: |
+          Write-Host "--- MentApi 产物 ---"
+          Get-ChildItem "$env:RUNNER_TEMP\publish\mentapi" -Name | Select-Object -First 20
+          Write-Host "`n--- 确认 appsettings.json 是占位符版 ---"
+          Get-Content "$env:RUNNER_TEMP\publish\mentapi\appsettings.json" | Select-String "REPLACE_ME"
