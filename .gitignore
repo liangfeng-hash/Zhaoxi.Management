@@ -31,6 +31,9 @@ bld/
 [Oo]bj/
 [Oo]ut/
 [Ll]og/
+# 业务代码目录，名字撞上了上面的日志目录规则，显式放行
+!Zhaoxi.Manage.Common/ModelDTO/[Ll]og/
+!Zhaoxi.Manage.Common/ModelDTO/[Ll]og/**
 [Ll]ogs/
 
 # Visual Studio 2015/2017 cache/options directory
