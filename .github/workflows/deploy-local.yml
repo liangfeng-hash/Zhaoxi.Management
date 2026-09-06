@@ -139,17 +139,13 @@ jobs:
           }
 
       - name: 回收应用池
-        shell: pwsh
-        run: |
-          Import-Module WebAdministration
-          foreach ($pool in @($env:MENTAPI_POOL, $env:IDENTITY_POOL)) {
-            if ((Get-WebAppPoolState -Name $pool).Value -ne 'Started') {
-              Start-WebAppPool -Name $pool
-            } else {
-              Restart-WebAppPool -Name $pool
+          shell: pwsh
+          run: |
+            $appcmd = "$env:SystemRoot\System32\inetsrv\appcmd.exe"
+            foreach ($pool in @($env:MENTAPI_POOL, $env:IDENTITY_POOL)) {
+              & $appcmd recycle apppool /apppool.name:"$pool"
+              Write-Host "$pool 已回收"
             }
-            Write-Host "$pool -> $((Get-WebAppPoolState -Name $pool).Value)"
-          }
 
       # ---------- 验证 ----------
       - name: 健康检查
