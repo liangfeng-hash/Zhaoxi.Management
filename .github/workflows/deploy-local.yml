@@ -13,6 +13,15 @@ env:
   DOTNET_NOLOGO: 'true'
   DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
 
+  # ⚠️ 关掉 git 的 fsmonitor 守护进程，否则 checkout 收尾时报 EBUSY。
+  # Git for Windows 的系统级 gitconfig 默认 core.fsmonitor=true，每次 git 操作都会拉起一个
+  # `git fsmonitor--daemon run --detach` 常驻进程；它继承 checkout 临时设置的
+  # HOME=_work\_temp\<guid>，导致 checkout 删该目录时句柄未释放 → EBUSY。
+  # GIT_CONFIG_* 环境变量优先级高于所有配置文件，且会传递给每个 git 子进程。
+  GIT_CONFIG_COUNT: '1'
+  GIT_CONFIG_KEY_0: 'core.fsmonitor'
+  GIT_CONFIG_VALUE_0: 'false'
+
 jobs:
   build:
     # 靠 label 找机器：self-hosted + windows 是自带的，local 是你配 runner 时填的
