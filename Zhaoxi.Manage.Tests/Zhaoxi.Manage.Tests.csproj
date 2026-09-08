@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <!-- 测试项目不需要跟着主项目一起发布 -->
+    <IsPublishable>false</IsPublishable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+    <PackageReference Include="xunit" Version="2.6.6" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.6" />
+    <!-- Moq 固定在 4.18.4：4.20.0 曾引入 SponsorLink 引发争议，避开 -->
+    <PackageReference Include="Moq" Version="4.18.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 被测代码在 MentApi 里（MenuAuthorizeHandler） -->
+    <ProjectReference Include="..\Zhaoxi.Manage.MentApi\Zhaoxi.Manage.MentApi.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -80,6 +80,16 @@ jobs:
           Get-ChildItem "$env:RUNNER_TEMP\publish\mentapi" -Name | Select-Object -First 20
           Write-Host "`n--- 确认 appsettings.json 是占位符版 ---"
           Get-Content "$env:RUNNER_TEMP\publish\mentapi\appsettings.json" | Select-String "REPLACE_ME"
+      # ---------- 单元测试 ----------
+      # 位置很关键：在「动站点」之前。测试挂了就中止，生产环境一个字节都不会变 ——
+      # 跟阶段 3「先只构建不发布」是同一个道理。
+      - name: 单元测试
+        shell: pwsh
+        run: |
+          dotnet test Zhaoxi.Manage.Tests\Zhaoxi.Manage.Tests.csproj `
+            -c Release --no-restore --nologo `
+            --logger "console;verbosity=minimal"
+
       - name: 备份当前站点
         shell: pwsh
         run: |
@@ -174,3 +184,44 @@ jobs:
           $tcp = Test-NetConnection -ComputerName localhost -Port ([int]$env:IDENTITY_PORT) -WarningAction SilentlyContinue
           if (-not $tcp.TcpTestSucceeded) { Write-Error "IdentityApi 端口不通"; exit 1 }
           Write-Host "IdentityApi 端口 $env:IDENTITY_PORT 可连接"
+
+      # ---------- 冒烟测试 ----------
+      # 健康检查只能证明「进程活着」，冒烟测试证明「业务是通的」。
+      # 直连两个 API（不经网关），只验证本仓库发布的东西。
+      - name: 冒烟测试（登录 → 带 token 查业务数据）
+        shell: pwsh
+        env:
+          SMOKE_USER: ${{ vars.SMOKE_USER }}
+          SMOKE_PASS: ${{ secrets.SMOKE_PASS }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ([string]::IsNullOrWhiteSpace($env:SMOKE_USER) -or [string]::IsNullOrWhiteSpace($env:SMOKE_PASS)) {
+            Write-Error "缺少 SMOKE_USER / SMOKE_PASS，去仓库 Settings 配一下（见手册 4.5）"; exit 1
+          }
+
+          # ① 登录 —— 直连 IdentityApi
+          $body  = @{ Name = $env:SMOKE_USER; Password = $env:SMOKE_PASS } | ConvertTo-Json
+          $login = Invoke-RestMethod "http://localhost:$($env:IDENTITY_PORT)/auth/Account" `
+                     -Method Post -Body $body -ContentType 'application/json' -TimeoutSec 20
+          if (-not $login.success) { Write-Error "① 登录失败: $($login.message)"; exit 1 }
+
+          $token = $login.oValue.accesstoken
+          if ([string]::IsNullOrWhiteSpace($token)) { Write-Error "① 登录成功却没拿到 token"; exit 1 }
+          Write-Host "① 登录通过（用户 $($login.data.userName)，token 长度 $($token.Length)）"
+
+          # ② 带 token 查业务数据 —— 直连 MentApi
+          #    这一步同时验证了两个 API 的 JWT SecurityKey 一致：
+          #    IdentityApi 签发的 token，MentApi 必须能验通，否则就是那个「随机 401」的根因
+          $menus = Invoke-RestMethod "http://localhost:8000/api/Menu/1/10" `
+                     -Headers @{ Authorization = "Bearer $token" } -TimeoutSec 20
+          if (-not $menus.success) { Write-Error "② 业务查询失败: $($menus.message)"; exit 1 }
+          Write-Host "② 业务查询通过（$($menus.message)）"
+
+          # ③ 反向验证：不带 token 必须被拒。防止哪次改动把鉴权关掉了还没人发现。
+          #    ⚠️ 本项目是「HTTP 200 + body 业务码」风格：鉴权失败也返回 HTTP 200，
+          #    真实结果在 success / oValue 里。所以必须判 body，不能靠 catch HTTP 异常。
+          $anon = Invoke-RestMethod "http://localhost:8000/api/Menu/1/10" -TimeoutSec 15
+          if ($anon.success) { Write-Error "③ 无 token 竟能拿到数据 —— 鉴权失效"; exit 1 }
+          Write-Host "③ 无 token 被正确拒绝（业务码 $($anon.oValue)）"
+
+          Write-Host "`n冒烟测试全部通过：登录链路 / JWT 密钥一致性 / 鉴权拦截"
