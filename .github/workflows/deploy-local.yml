@@ -42,6 +42,7 @@ jobs:
   build:
     # 靠 label 找机器：self-hosted + windows 是自带的，local 是你配 runner 时填的
     runs-on: [self-hosted, windows, local]
+    environment: local          # 决定读哪一套 Environment Secrets
 
     steps:
       - name: 拉取代码
@@ -90,6 +91,66 @@ jobs:
             -c Release --no-restore --nologo `
             --logger "console;verbosity=minimal"
 
+      # ---------- 渲染生产配置 ----------
+      # 位置：构建/测试之后、备份之前。渲染失败就中止，此时站点还没被碰过。
+      # 配置的真相来源是 GitHub Environment Secrets，站点上的文件每次发布重新生成。
+      - name: 渲染生产配置
+        shell: pwsh
+        env:
+          DB_CONNECTION_STRING: ${{ secrets.DB_CONNECTION_STRING }}
+          JWT_SECURITY_KEY:     ${{ secrets.JWT_SECURITY_KEY }}
+          SMTP_FROM_ADDR:       ${{ secrets.SMTP_FROM_ADDR }}
+          SMTP_FROM_PASS:       ${{ secrets.SMTP_FROM_PASS }}
+          SMTP_TO_ADDR:         ${{ secrets.SMTP_TO_ADDR }}
+          ADMIN_INIT_PASSWORD:  ${{ secrets.ADMIN_INIT_PASSWORD }}
+          JWT_ISSUER:           ${{ vars.JWT_ISSUER }}
+          JWT_AUDIENCE:         ${{ vars.JWT_AUDIENCE }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          # 缺哪个要当场说清楚，别等应用起不来才猜
+          foreach ($n in 'DB_CONNECTION_STRING','JWT_SECURITY_KEY','SMTP_FROM_ADDR',
+                         'SMTP_FROM_PASS','SMTP_TO_ADDR','ADMIN_INIT_PASSWORD',
+                         'JWT_ISSUER','JWT_AUDIENCE') {
+            if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($n))) {
+              Write-Error "缺少 secret/variable: $n（去仓库 Settings - Environments 里配）"; exit 1
+            }
+          }
+
+          # 两个 API 共用同一个 $jwt 对象，从源头保证密钥一致
+          $jwt = @{ Audience = $env:JWT_AUDIENCE; Issuer = $env:JWT_ISSUER; SecurityKey = $env:JWT_SECURITY_KEY }
+
+          # 只写需要被生产值覆盖的 key，其余走 appsettings.json 的分层合并
+          $mentApi = @{
+            SmtpClientConfig  = @{ FromAddr     = $env:SMTP_FROM_ADDR
+                                   FromAddrPass = $env:SMTP_FROM_PASS
+                                   ToAddrList   = @($env:SMTP_TO_ADDR) }
+            Admin             = @{ password = $env:ADMIN_INIT_PASSWORD }
+            ConnectionStrings = @{ ConnectionString = $env:DB_CONNECTION_STRING }
+            JWTTokenOptions   = $jwt
+          }
+          $identityApi = @{
+            ConnectionStrings = @{ ConnectionString = $env:DB_CONNECTION_STRING }
+            JWTTokenOptions   = $jwt
+          }
+
+          $targets = @(
+            @{ Obj = $mentApi;     Out = "$env:RUNNER_TEMP\publish\mentapi\appsettings.Production.json" },
+            @{ Obj = $identityApi; Out = "$env:RUNNER_TEMP\publish\identityapi\appsettings.Production.json" }
+          )
+          foreach ($t in $targets) {
+            # ConvertTo-Json 自动处理转义，连接串里的 \ 和 " 不用自己操心
+            $json = $t.Obj | ConvertTo-Json -Depth 10
+            [System.IO.File]::WriteAllText($t.Out, $json, (New-Object System.Text.UTF8Encoding $false))
+            Write-Host "  渲染 -> $($t.Out)"
+          }
+
+          # 业务级校验：两个 API 的 JWT 密钥必须一致，否则登录后随机 401
+          $a = (Get-Content $targets[0].Out -Raw -Encoding UTF8 | ConvertFrom-Json).JWTTokenOptions.SecurityKey
+          $b = (Get-Content $targets[1].Out -Raw -Encoding UTF8 | ConvertFrom-Json).JWTTokenOptions.SecurityKey
+          if ($a -ne $b) { Write-Error "两个 API 的 JWT SecurityKey 不一致"; exit 1 }
+          Write-Host "  JWT 密钥一致性校验通过"
+
       - name: 备份当前站点
         shell: pwsh
         run: |
@@ -128,7 +189,7 @@ jobs:
         shell: pwsh
         run: |
           robocopy "$env:RUNNER_TEMP\publish\mentapi" $env:MENTAPI_SITE /MIR `
-            /XF appsettings.Production.json appsettings.Development.json app_offline.htm `
+            /XF appsettings.Development.json app_offline.htm `
             /XD logs log4 FileUpload `
             /NFL /NDL /NJH /NJS /R:3 /W:2
           if ($LASTEXITCODE -ge 8) { Write-Error "同步失败 code=$LASTEXITCODE"; exit 1 }
@@ -138,7 +199,7 @@ jobs:
         shell: pwsh
         run: |
           robocopy "$env:RUNNER_TEMP\publish\identityapi" $env:IDENTITY_SITE /MIR `
-            /XF appsettings.Production.json appsettings.Development.json app_offline.htm `
+            /XF appsettings.Development.json app_offline.htm `
             /XD logs log4 `
             /NFL /NDL /NJH /NJS /R:3 /W:2
           if ($LASTEXITCODE -ge 8) { Write-Error "同步失败 code=$LASTEXITCODE"; exit 1 }
