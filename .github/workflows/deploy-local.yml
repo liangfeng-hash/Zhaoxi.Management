@@ -28,12 +28,14 @@ env:
   GIT_CONFIG_KEY_0: 'core.fsmonitor'
   GIT_CONFIG_VALUE_0: 'false'
   
-  MENTAPI_SITE:   'C:\inetpub\zhaoxiAPI'
-  MENTAPI_POOL:   'zhaoxiAPI'
+  MENTAPI_SITE:     'C:\inetpub\zhaoxiAPI'
+  MENTAPI_POOL:     'zhaoxiAPI'
+  MENTAPI_SITENAME: 'zhaoxiAPI'      # IIS 站点名（与应用池同名，但两者是不同对象）
   MENTAPI_HEALTH: 'http://localhost:8000/health'
 
-  IDENTITY_SITE:  'C:\inetpub\IdentityApi'
-  IDENTITY_POOL:  'IdentityApi'
+  IDENTITY_SITE:     'C:\inetpub\IdentityApi'
+  IDENTITY_POOL:     'IdentityApi'
+  IDENTITY_SITENAME: 'IdentityApi'
   IDENTITY_PORT:  '8001'
 
   BACKUP_ROOT:    'C:\deploy-backup'
@@ -215,13 +217,40 @@ jobs:
             Remove-Item (Join-Path $site 'app_offline.htm') -Force -ErrorAction SilentlyContinue
           }
 
-      - name: 回收应用池
+      - name: 启动应用池与站点
         shell: pwsh
+        # ⚠️ 三个层级各自独立，缺一个都起不来：
+        #   app_offline.htm —— 应用层，上一步已删
+        #   应用池 AppPool  —— 工作进程层，停着的话请求进来没人处理（503）
+        #   站点 Site       —— 端口监听层，停着的话端口根本不监听（连接被拒）
+        # 只回收应用池是不够的：站点被停过、或新机器首次部署时，站点不会自己起来。
         run: |
           $appcmd = "$env:SystemRoot\System32\inetsrv\appcmd.exe"
+
+          # 应用池：停着就启动，在跑就回收（回收=优雅重启，让新 dll 生效）
           foreach ($pool in @($env:MENTAPI_POOL, $env:IDENTITY_POOL)) {
-            & $appcmd recycle apppool /apppool.name:"$pool"
-            Write-Host "$pool 已回收"
+            $state = (& $appcmd list apppool "$pool" /text:state) 2>$null
+            if ($state -ne 'Started') {
+              & $appcmd start apppool "$pool" | Out-Null
+              Write-Host "  应用池 $pool 已启动（原状态: $state）"
+            } else {
+              & $appcmd recycle apppool "$pool" | Out-Null
+              Write-Host "  应用池 $pool 已回收"
+            }
+          }
+
+          # 站点：确保在监听。app_offline 和回收应用池都不管站点本身的启停
+          foreach ($site in @($env:MENTAPI_SITENAME, $env:IDENTITY_SITENAME)) {
+            $state = (& $appcmd list site "$site" /text:state) 2>$null
+            if ([string]::IsNullOrWhiteSpace($state)) {
+              Write-Error "站点 $site 不存在 —— 需要先按手册 1.4 建站"; exit 1
+            }
+            if ($state -ne 'Started') {
+              & $appcmd start site "$site" | Out-Null
+              Write-Host "  站点 $site 已启动（原状态: $state）"
+            } else {
+              Write-Host "  站点 $site 运行中"
+            }
           }
 
       # ---------- 验证 ----------
