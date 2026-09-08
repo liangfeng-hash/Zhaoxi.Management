@@ -56,7 +56,8 @@ public class MenuAuthorizeHandlerTests
 
         await handler.HandleAsync(context);
 
-        Assert.True(context.HasFailed);
+        // ⚠️ 演练用：故意改错的断言（未认证时实际 HasFailed=true），用于验证 CI 闸门
+        Assert.False(context.HasFailed);
         Assert.False(context.HasSucceeded);
     }
 
