@@ -1,0 +1,41 @@
+# 由流水线复制到 linux-C:/home/ubuntu/docker/zhaoxi/docker-compose.yml
+# 服务器上不要手改 —— 每次发布都会被这份覆盖
+# REGISTRY / NAMESPACE / TAG 来自同目录 .env（由流水线写入，不含密钥）
+name: zhaoxi
+
+services:
+  webapi:
+    image: ${REGISTRY}/${NAMESPACE}/webapi:${TAG:?TAG 未设置，应由流水线写入 .env}
+    container_name: zhaoxi-webapi
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8000:8080"     # .NET 8 镜像默认监听 8080
+    volumes:
+      # 生产配置由流水线从 GitHub Secrets 渲染，只读挂载，不进镜像
+      - ./config/webapi/appsettings.Production.json:/app/appsettings.Production.json:ro
+      - ./uploads:/app/FileUpload
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      TZ: Asia/Shanghai
+    mem_limit: 512m
+    networks:
+      - zhaoxi-net
+
+  auth:
+    image: ${REGISTRY}/${NAMESPACE}/auth:${TAG:?TAG 未设置，应由流水线写入 .env}
+    container_name: zhaoxi-auth
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8001:8080"
+    volumes:
+      - ./config/auth/appsettings.Production.json:/app/appsettings.Production.json:ro
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      TZ: Asia/Shanghai
+    mem_limit: 512m
+    networks:
+      - zhaoxi-net
+
+networks:
+  zhaoxi-net:
+    external: true

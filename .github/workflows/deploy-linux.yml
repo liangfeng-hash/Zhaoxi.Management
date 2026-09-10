@@ -1,0 +1,267 @@
+name: 部署后端到 linux-C
+
+# Actions 列表标题 = tag 指向的 commit 的 message 第一行，发布说明写在 commit message 里
+
+on:
+  push:
+    tags: [ 'v*' ]            # 只有打 tag 才触发
+  workflow_dispatch:          # 手动触发：补发、排障、按旧 tag 重建
+    inputs:
+      deploy:
+        description: '构建后同时部署到 linux-C'
+        type: boolean
+        default: true
+
+concurrency:
+  group: deploy-linux-api
+  cancel-in-progress: false   # 部署不可中断，排队执行
+
+env:
+  DOTNET_NOLOGO: 'true'
+  DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+  REGISTRY:   ccr.ccs.tencentyun.com
+  NAMESPACE:  webapi_docker
+  DEPLOY_DIR: /home/ubuntu/docker/zhaoxi
+
+jobs:
+  # ══════════════════════════════════════════════
+  # 构建：GitHub 云端。测试、发布、打镜像、推 TCR
+  # ══════════════════════════════════════════════
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 计算镜像 tag
+        id: meta
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then TAG="$GITHUB_REF_NAME"; else TAG="${GITHUB_SHA::7}"; fi
+          # 镜像 tag 只允许 [A-Za-z0-9_.-]，最长 128
+          TAG=$(printf '%s' "$TAG" | tr -c 'A-Za-z0-9_.-' '-' | cut -c1-128)
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "镜像 tag: $TAG"
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: 还原依赖
+        # 不用 .sln：里面含 docker-compose.dcproj（VS 容器工具项目），避免在 Linux 上加载它
+        run: |
+          set -euo pipefail
+          dotnet restore Zhaoxi.Manage.Tests/Zhaoxi.Manage.Tests.csproj
+          dotnet restore Zhaoxi.Manage.IdentityApi/Zhaoxi.Manage.IdentityApi.csproj
+
+      - name: 单元测试
+        run: dotnet test Zhaoxi.Manage.Tests/Zhaoxi.Manage.Tests.csproj -c Release --no-restore --logger "console;verbosity=minimal"
+
+      - name: 发布
+        run: |
+          set -euo pipefail
+          dotnet publish Zhaoxi.Manage.MentApi/Zhaoxi.Manage.MentApi.csproj         -c Release --no-restore -o out/webapi/publish
+          dotnet publish Zhaoxi.Manage.IdentityApi/Zhaoxi.Manage.IdentityApi.csproj -c Release --no-restore -o out/auth/publish
+
+      - name: 检查产物不含密钥
+        # 镜像要推到 TCR，只允许占位符版 appsettings.json；真实值部署时在服务器上渲染
+        run: |
+          set -euo pipefail
+          for s in webapi auth; do
+            f="out/$s/publish/appsettings.json"
+            grep -q "__REPLACE_ME__" "$f" || { echo "❌ $f 不是占位符版"; exit 1; }
+            if ls out/$s/publish/appsettings.*.json >/dev/null 2>&1; then
+              echo "❌ 产物里混入了环境配置文件："; ls out/$s/publish/appsettings.*.json; exit 1
+            fi
+          done
+          echo "✅ 两个产物都只有占位符版 appsettings.json"
+
+      - name: 登录 TCR
+        env:
+          TCR_USERNAME: ${{ secrets.TCR_USERNAME }}
+          TCR_PASSWORD: ${{ secrets.TCR_PASSWORD }}
+        run: |
+          set -euo pipefail
+          [ -n "$TCR_USERNAME" ] && [ -n "$TCR_PASSWORD" ] || { echo "❌ 缺少仓库级 secret TCR_USERNAME / TCR_PASSWORD"; exit 1; }
+          printf '%s' "$TCR_PASSWORD" | docker login "$REGISTRY" --username "$TCR_USERNAME" --password-stdin
+
+      - name: 构建并推送镜像
+        env:
+          TAG: ${{ steps.meta.outputs.tag }}
+        run: |
+          set -euo pipefail
+          docker build -f Zhaoxi.Manage.MentApi/Dockerfile     -t "$REGISTRY/$NAMESPACE/webapi:$TAG" out/webapi
+          docker build -f Zhaoxi.Manage.IdentityApi/Dockerfile -t "$REGISTRY/$NAMESPACE/auth:$TAG"   out/auth
+          docker push "$REGISTRY/$NAMESPACE/webapi:$TAG"
+          docker push "$REGISTRY/$NAMESPACE/auth:$TAG"
+
+      - name: 上传部署文件
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-${{ github.run_number }}
+          path: deploy/linux-c/
+          retention-days: 7
+          if-no-files-found: error
+
+  # ══════════════════════════════════════════════
+  # 部署：linux-C 上的 linux-c-api runner
+  # ══════════════════════════════════════════════
+  deploy:
+    needs: build
+    # push 只会是 tag；手动触发时可取消勾选 deploy 只构建
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.deploy)
+    runs-on: [self-hosted, linux-c]
+    environment: production
+    env:
+      TAG: ${{ needs.build.outputs.tag }}
+    steps:
+      - name: 下载部署文件
+        uses: actions/download-artifact@v4
+        with:
+          name: deploy-${{ github.run_number }}
+          path: deploy
+
+      - name: 登录 TCR 并拉取镜像
+        # 先拉镜像：拉取失败时线上还一个字节没动
+        env:
+          TCR_USERNAME: ${{ secrets.TCR_USERNAME }}
+          TCR_PASSWORD: ${{ secrets.TCR_PASSWORD }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$TCR_PASSWORD" | docker login "$REGISTRY" --username "$TCR_USERNAME" --password-stdin
+          docker pull "$REGISTRY/$NAMESPACE/webapi:$TAG"
+          docker pull "$REGISTRY/$NAMESPACE/auth:$TAG"
+
+      - name: 渲染生产配置
+        env:
+          DB_CONNECTION_STRING: ${{ secrets.DB_CONNECTION_STRING }}
+          JWT_SECURITY_KEY:     ${{ secrets.JWT_SECURITY_KEY }}
+          SMTP_FROM_ADDR:       ${{ secrets.SMTP_FROM_ADDR }}
+          SMTP_FROM_PASS:       ${{ secrets.SMTP_FROM_PASS }}
+          SMTP_TO_ADDR:         ${{ secrets.SMTP_TO_ADDR }}
+          ADMIN_INIT_PASSWORD:  ${{ secrets.ADMIN_INIT_PASSWORD }}
+          JWT_ISSUER:           ${{ vars.JWT_ISSUER }}
+          JWT_AUDIENCE:         ${{ vars.JWT_AUDIENCE }}
+        run: |
+          set -euo pipefail
+          umask 077
+          for n in DB_CONNECTION_STRING JWT_SECURITY_KEY SMTP_FROM_ADDR SMTP_FROM_PASS SMTP_TO_ADDR ADMIN_INIT_PASSWORD JWT_ISSUER JWT_AUDIENCE; do
+            [ -n "${!n}" ] || { echo "❌ 缺少 $n（Settings → Environments → production）"; exit 1; }
+          done
+          printf '%s' "$DB_CONNECTION_STRING" | grep -qE 'Password=[^;]+' || { echo "❌ DB_CONNECTION_STRING 里没有密码"; exit 1; }
+          [ ${#JWT_SECURITY_KEY} -ge 32 ] || echo "::warning::JWT_SECURITY_KEY 只有 ${#JWT_SECURITY_KEY} 位，将来升级 IdentityModel≥6.30.1 会报 IDX10720"
+
+          tmp=$(mktemp -d)
+          jq -n --arg cs "$DB_CONNECTION_STRING" --arg key "$JWT_SECURITY_KEY" \
+                --arg iss "$JWT_ISSUER" --arg aud "$JWT_AUDIENCE" \
+                --arg from "$SMTP_FROM_ADDR" --arg pass "$SMTP_FROM_PASS" --arg to "$SMTP_TO_ADDR" \
+                --arg admin "$ADMIN_INIT_PASSWORD" \
+            '{ SmtpClientConfig:  { FromAddr: $from, FromAddrPass: $pass, ToAddrList: [$to] },
+               Admin:             { password: $admin },
+               ConnectionStrings: { ConnectionString: $cs },
+               JWTTokenOptions:   { Audience: $aud, Issuer: $iss, SecurityKey: $key } }' > "$tmp/webapi.json"
+          jq -n --arg cs "$DB_CONNECTION_STRING" --arg key "$JWT_SECURITY_KEY" \
+                --arg iss "$JWT_ISSUER" --arg aud "$JWT_AUDIENCE" \
+            '{ ConnectionStrings: { ConnectionString: $cs },
+               JWTTokenOptions:   { Audience: $aud, Issuer: $iss, SecurityKey: $key } }' > "$tmp/auth.json"
+
+          # 两个 API 的 JWT 密钥必须一致，否则登录后随机 401
+          [ "$(jq -r .JWTTokenOptions.SecurityKey "$tmp/webapi.json")" = "$(jq -r .JWTTokenOptions.SecurityKey "$tmp/auth.json")" ]
+
+          install -m 600 "$tmp/webapi.json" "$DEPLOY_DIR/config/webapi/appsettings.Production.json"
+          install -m 600 "$tmp/auth.json"   "$DEPLOY_DIR/config/auth/appsettings.Production.json"
+          rm -rf "$tmp"
+          echo "✅ 生产配置已渲染（600）"
+
+      - name: 切换版本
+        run: |
+          set -euo pipefail
+          install -m 644 "$GITHUB_WORKSPACE/deploy/docker-compose.yml" "$DEPLOY_DIR/docker-compose.yml"
+          cd "$DEPLOY_DIR"
+          PREV=$(grep -oP '^TAG=\K.*' .env 2>/dev/null || true)
+          echo "PREV=$PREV" >> "$GITHUB_ENV"
+          echo "线上版本: ${PREV:-（首次发布）}  →  新版本: $TAG"
+
+          printf 'REGISTRY=%s\nNAMESPACE=%s\nTAG=%s\n' "$REGISTRY" "$NAMESPACE" "$TAG" > .env.new
+          mv -f .env.new .env
+          echo "SWITCHED=1" >> "$GITHUB_ENV"
+          # --force-recreate：同 tag 重发时也重建容器，确保读到新渲染的配置
+          docker compose up -d --force-recreate
+          docker compose ps
+
+      - name: 健康检查
+        run: |
+          set -euo pipefail
+          # 首次连空库时 MentApi 要先建库建表，启动较慢
+          for i in $(seq 1 40); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 http://127.0.0.1:8000/health || true)
+            [ "$code" = "200" ] && { echo "✅ MentApi /health 200（第 $i 次）"; exit 0; }
+            echo "第 $i 次：HTTP $code，3 秒后重试…"; sleep 3
+          done
+          echo "❌ MentApi 健康检查超时"; docker logs --tail 60 zhaoxi-webapi; exit 1
+
+      - name: 冒烟测试（登录 → 带 token 查业务 → 无 token 应被拒）
+        env:
+          SMOKE_USER: ${{ vars.SMOKE_USER }}
+          SMOKE_PASS: ${{ secrets.SMOKE_PASS }}
+        run: |
+          set -euo pipefail
+          [ -n "$SMOKE_USER" ] && [ -n "$SMOKE_PASS" ] || { echo "❌ 缺少 SMOKE_USER / SMOKE_PASS"; exit 1; }
+
+          # ① 登录。IdentityApi 没有 /health，用登录兼作就绪探测（表可能刚由 MentApi 建好，允许重试）
+          body=$(jq -nc --arg u "$SMOKE_USER" --arg p "$SMOKE_PASS" '{Name:$u, Password:$p}')
+          token=""
+          for i in $(seq 1 20); do
+            resp=$(curl -s --max-time 15 -X POST http://127.0.0.1:8001/auth/Account \
+                   -H 'Content-Type: application/json' -d "$body" || true)
+            if [ "$(printf '%s' "$resp" | jq -r '.success // false' 2>/dev/null)" = "true" ]; then
+              token=$(printf '%s' "$resp" | jq -r '.oValue.accesstoken // empty'); break
+            fi
+            echo "第 $i 次登录未成功：$(printf '%s' "$resp" | head -c 150)"; sleep 3
+          done
+          [ -n "$token" ] || { echo "❌ ① 登录失败或未拿到 token"; docker logs --tail 60 zhaoxi-auth; exit 1; }
+          echo "① 登录通过（token 长度 ${#token}）"
+
+          # ② 带 token 查业务 —— 同时验证两个 API 的 JWT 密钥一致
+          r2=$(curl -s --max-time 20 -H "Authorization: Bearer $token" http://127.0.0.1:8000/api/Menu/1/10)
+          [ "$(printf '%s' "$r2" | jq -r '.success')" = "true" ] || { echo "❌ ② 业务查询失败：$(printf '%s' "$r2" | head -c 200)"; exit 1; }
+          echo "② 业务查询通过（$(printf '%s' "$r2" | jq -r '.message')）"
+
+          # ③ 无 token 必须被拒。本项目鉴权失败也返回 HTTP 200，只能判 body
+          r3=$(curl -s --max-time 15 http://127.0.0.1:8000/api/Menu/1/10)
+          [ "$(printf '%s' "$r3" | jq -r '.success')" = "false" ] || { echo "❌ ③ 无 token 竟能拿到数据 —— 鉴权失效"; exit 1; }
+          echo "③ 无 token 被正确拒绝（业务码 $(printf '%s' "$r3" | jq -r '.oValue')）"
+
+      - name: 失败自动回滚
+        # 只有「已经切换过」才回滚；拉镜像/渲染阶段失败时线上没动过
+        if: failure() && env.SWITCHED == '1'
+        run: |
+          set -euo pipefail
+          cd "$DEPLOY_DIR"
+          if [ -n "${PREV:-}" ] && [ "$PREV" != "$TAG" ]; then
+            printf 'REGISTRY=%s\nNAMESPACE=%s\nTAG=%s\n' "$REGISTRY" "$NAMESPACE" "$PREV" > .env.new
+            mv -f .env.new .env
+            docker compose up -d --force-recreate
+            echo "⚠️ 已回滚到 $PREV"
+          else
+            echo "⚠️ 无可自动回滚的版本（首次发布或同版本重发），按速通版步骤 6.4 人工恢复"
+          fi
+
+      - name: 清理旧镜像（每个仓库保留最近 3 个）
+        if: success()
+        run: |
+          set -euo pipefail
+          for repo in webapi auth; do
+            docker images "$REGISTRY/$NAMESPACE/$repo" --format '{{.Tag}}' | sort -Vr | tail -n +4 | while read -r t; do
+              [ "$t" = "$TAG" ] && continue
+              [ "$t" = "${PREV:-}" ] && continue
+              docker rmi "$REGISTRY/$NAMESPACE/$repo:$t" && echo "已清理 $repo:$t" || true
+            done
+          done
+          docker image prune -f >/dev/null
+          docker images --filter "reference=$REGISTRY/$NAMESPACE/*" --format 'table {{.Repository}}:{{.Tag}}\t{{.Size}}'
+
+      - name: 退出 TCR 登录
+        if: always()
+        run: docker logout "$REGISTRY" || true
