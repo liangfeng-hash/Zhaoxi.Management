@@ -19,13 +19,17 @@ concurrency:
 env:
   DOTNET_NOLOGO: 'true'
   DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
-  REGISTRY:   ccr.ccs.tencentyun.com
+  # 镜像仓库：阿里云 ACR 个人版 · 华南1（深圳）· 公网域名
+  #   -vpc 域名只能在阿里云专有网络内使用，GitHub 云端与腾讯云 linux-C 都不在其中
+  REGISTRY:   crpi-0zkohmx9y86mg3tk.cn-shenzhen.personal.cr.aliyuncs.com
+  # 原腾讯云 TCR 个人版（从 GitHub 跨境推送仅约 30KB/s，已弃用）：
+  # REGISTRY: ccr.ccs.tencentyun.com
   NAMESPACE:  webapi_docker
   DEPLOY_DIR: /home/ubuntu/docker/zhaoxi
 
 jobs:
   # ══════════════════════════════════════════════
-  # 构建：GitHub 云端。测试、发布、打镜像、推 TCR
+  # 构建：GitHub 云端。测试、发布、打镜像、推阿里云 ACR
   # ══════════════════════════════════════════════
   build:
     runs-on: ubuntu-latest
@@ -65,7 +69,7 @@ jobs:
           dotnet publish Zhaoxi.Manage.IdentityApi/Zhaoxi.Manage.IdentityApi.csproj -c Release --no-restore -o out/auth/publish
 
       - name: 检查产物不含密钥
-        # 镜像要推到 TCR，只允许占位符版 appsettings.json；真实值部署时在服务器上渲染
+        # 镜像要推到镜像仓库，只允许占位符版 appsettings.json；真实值部署时在服务器上渲染
         run: |
           set -euo pipefail
           for s in webapi auth; do
@@ -77,14 +81,15 @@ jobs:
           done
           echo "✅ 两个产物都只有占位符版 appsettings.json"
 
-      - name: 登录 TCR
+      - name: 登录阿里云 ACR
         env:
-          TCR_USERNAME: ${{ secrets.TCR_USERNAME }}
-          TCR_PASSWORD: ${{ secrets.TCR_PASSWORD }}
+          # 换回腾讯云时改成 secrets.TCR_USERNAME / secrets.TCR_PASSWORD
+          REG_USERNAME: ${{ secrets.ACR_USERNAME }}
+          REG_PASSWORD: ${{ secrets.ACR_PASSWORD }}
         run: |
           set -euo pipefail
-          [ -n "$TCR_USERNAME" ] && [ -n "$TCR_PASSWORD" ] || { echo "❌ 缺少仓库级 secret TCR_USERNAME / TCR_PASSWORD"; exit 1; }
-          printf '%s' "$TCR_PASSWORD" | docker login "$REGISTRY" --username "$TCR_USERNAME" --password-stdin
+          [ -n "$REG_USERNAME" ] && [ -n "$REG_PASSWORD" ] || { echo "❌ 缺少仓库级 secret ACR_USERNAME / ACR_PASSWORD"; exit 1; }
+          printf '%s' "$REG_PASSWORD" | docker login "$REGISTRY" --username "$REG_USERNAME" --password-stdin
 
       - name: 构建并推送镜像
         env:
@@ -93,8 +98,13 @@ jobs:
           set -euo pipefail
           docker build -f Zhaoxi.Manage.MentApi/Dockerfile     -t "$REGISTRY/$NAMESPACE/webapi:$TAG" out/webapi
           docker build -f Zhaoxi.Manage.IdentityApi/Dockerfile -t "$REGISTRY/$NAMESPACE/auth:$TAG"   out/auth
-          docker push "$REGISTRY/$NAMESPACE/webapi:$TAG"
-          docker push "$REGISTRY/$NAMESPACE/auth:$TAG"
+          # 两个镜像并行推送；两个都要等完，任一失败则整步失败
+          docker push "$REGISTRY/$NAMESPACE/webapi:$TAG" & P1=$!
+          docker push "$REGISTRY/$NAMESPACE/auth:$TAG"   & P2=$!
+          rc=0
+          wait "$P1" || rc=1
+          wait "$P2" || rc=1
+          [ "$rc" -eq 0 ] || { echo "❌ 镜像推送失败"; exit 1; }
 
       - name: 上传部署文件
         uses: actions/upload-artifact@v4
@@ -122,14 +132,15 @@ jobs:
           name: deploy-${{ github.run_number }}
           path: deploy
 
-      - name: 登录 TCR 并拉取镜像
+      - name: 登录阿里云 ACR 并拉取镜像
         # 先拉镜像：拉取失败时线上还一个字节没动
         env:
-          TCR_USERNAME: ${{ secrets.TCR_USERNAME }}
-          TCR_PASSWORD: ${{ secrets.TCR_PASSWORD }}
+          # 换回腾讯云时改成 secrets.TCR_USERNAME / secrets.TCR_PASSWORD
+          REG_USERNAME: ${{ secrets.ACR_USERNAME }}
+          REG_PASSWORD: ${{ secrets.ACR_PASSWORD }}
         run: |
           set -euo pipefail
-          printf '%s' "$TCR_PASSWORD" | docker login "$REGISTRY" --username "$TCR_USERNAME" --password-stdin
+          printf '%s' "$REG_PASSWORD" | docker login "$REGISTRY" --username "$REG_USERNAME" --password-stdin
           docker pull "$REGISTRY/$NAMESPACE/webapi:$TAG"
           docker pull "$REGISTRY/$NAMESPACE/auth:$TAG"
 
@@ -180,7 +191,10 @@ jobs:
           install -m 644 "$GITHUB_WORKSPACE/deploy/docker-compose.yml" "$DEPLOY_DIR/docker-compose.yml"
           cd "$DEPLOY_DIR"
           PREV=$(grep -oP '^TAG=\K.*' .env 2>/dev/null || true)
+          # 上一版所在的镜像仓库也要记下：换仓库的那次发布，上一版镜像只在旧仓库里
+          PREV_REGISTRY=$(grep -oP '^REGISTRY=\K.*' .env 2>/dev/null || true)
           echo "PREV=$PREV" >> "$GITHUB_ENV"
+          echo "PREV_REGISTRY=${PREV_REGISTRY:-$REGISTRY}" >> "$GITHUB_ENV"
           echo "线上版本: ${PREV:-（首次发布）}  →  新版本: $TAG"
 
           printf 'REGISTRY=%s\nNAMESPACE=%s\nTAG=%s\n' "$REGISTRY" "$NAMESPACE" "$TAG" > .env.new
@@ -240,10 +254,10 @@ jobs:
           set -euo pipefail
           cd "$DEPLOY_DIR"
           if [ -n "${PREV:-}" ] && [ "$PREV" != "$TAG" ]; then
-            printf 'REGISTRY=%s\nNAMESPACE=%s\nTAG=%s\n' "$REGISTRY" "$NAMESPACE" "$PREV" > .env.new
+            printf 'REGISTRY=%s\nNAMESPACE=%s\nTAG=%s\n' "${PREV_REGISTRY:-$REGISTRY}" "$NAMESPACE" "$PREV" > .env.new
             mv -f .env.new .env
             docker compose up -d --force-recreate
-            echo "⚠️ 已回滚到 $PREV"
+            echo "⚠️ 已回滚到 ${PREV_REGISTRY:-$REGISTRY} 的 $PREV"
           else
             echo "⚠️ 无可自动回滚的版本（首次发布或同版本重发），按速通版步骤 6.4 人工恢复"
           fi
@@ -262,6 +276,6 @@ jobs:
           docker image prune -f >/dev/null
           docker images --filter "reference=$REGISTRY/$NAMESPACE/*" --format 'table {{.Repository}}:{{.Tag}}\t{{.Size}}'
 
-      - name: 退出 TCR 登录
+      - name: 退出镜像仓库登录
         if: always()
         run: docker logout "$REGISTRY" || true
