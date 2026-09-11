@@ -1,4 +1,4 @@
-using AutoMapper;
+ï»¿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using SqlSugar;
 using System.Security.Policy;
@@ -21,7 +21,7 @@ namespace Zhaoxi.Manage.MentApi.Controllers
         private readonly IUserRoleMenuService _IUserRoleMenuService;
 
         /// <summary>
-        /// ¡¾¹¹Ôìº¯Êı¡¿
+        /// ã€æ„é€ å‡½æ•°ã€‘
         /// </summary>
         /// <param name="userRoleMenuService"></param>
         public AccountController(IUserRoleMenuService userRoleMenuService)

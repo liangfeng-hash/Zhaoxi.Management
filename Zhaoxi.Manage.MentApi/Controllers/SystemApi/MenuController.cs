@@ -1,4 +1,4 @@
-using AutoMapper;
+ï»¿using AutoMapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -17,11 +17,11 @@ using Zhaoxi.Manage.Models.Entity;
 namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
 {
     /// <summary>
-    /// ²Ëµ¥¹ÜÀí
+    /// èœå•ç®¡ç†
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
-    [Function(MenuTypeEnum.Menu, "²Ëµ¥¹ÜÀí", null, "menu", "../views/Home/menu/info/index.vue")]
+    [Function(MenuTypeEnum.Menu, "èœå•ç®¡ç†", null, "menu", "../views/Home/menu/info/index.vue")]
     [ApiExplorerSettings(IgnoreApi = false, GroupName = nameof(ApiVersions.V1))]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Policy = "btnPolicy")]
     public class MenuController : ControllerBase
@@ -31,7 +31,7 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
         private readonly IMapper _IMapper;
 
         /// <summary>
-        /// ¹¹Ôìº¯Êı
+        /// æ„é€ å‡½æ•°
         /// </summary>
         /// <param name="userRoleMenuService"></param>
         /// <param name="_iMenuManagerService"></param>
@@ -44,7 +44,7 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
         }
          
         /// <summary>
-        /// »ñÈ¡ËùÓĞµÄ²Ëµ¥ĞÅÏ¢--ÎªÊ÷ĞÎÏÂÀ­ÁĞ±íÊ¹ÓÃ 
+        /// è·å–æ‰€æœ‰çš„èœå•ä¿¡æ¯--ä¸ºæ ‘å½¢ä¸‹æ‹‰åˆ—è¡¨ä½¿ç”¨ 
         /// </summary>
         /// <param name="menueId"></param>
         /// <returns></returns>
@@ -58,7 +58,7 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
             var datalist = _IMapper.Map<List<Sys_Menu>, List<TreeSelectDTO>>(menusTreeList);
             datalist.Insert(0, new TreeSelectDTO()
             {
-                Label = "----×÷Îª¶¥¼¶²Ëµ¥------",
+                Label = "----ä½œä¸ºé¡¶çº§èœå•------",
                 Value = "00000000-0000-0000-0000-000000000000",
                 Selected = true
             });
@@ -66,26 +66,26 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
             {
                 Data = datalist,
                 Success = true,
-                Message = "»ñÈ¡ËùÓĞµÄ²Ëµ¥ĞÅÏ¢"
+                Message = "è·å–æ‰€æœ‰çš„èœå•ä¿¡æ¯"
             });
             return result;
         }
 
         /// <summary>
-        ///»ñÈ¡²Ëµ¥ÁĞ±í-¸ù¾İÓÃ»§µÄ¹éÊôÀ´»ñÈ¡
+        ///è·å–èœå•åˆ—è¡¨-æ ¹æ®ç”¨æˆ·çš„å½’å±æ¥è·å–
         /// </summary>
-        /// <returns>·µ»Ø´øÓĞÊ÷ĞÎ½á¹ûµÄ²Ëµ¥ÁĞ±í</returns> 
+        /// <returns>è¿”å›å¸¦æœ‰æ ‘å½¢ç»“æœçš„èœå•åˆ—è¡¨</returns> 
         [HttpGet()] 
         [AllowAnonymous] //
         public async Task<JsonResult> GetMenuTreeListAsync()
         {
-            //ÕâÀïÄÜ¹»ÄÃµ½Userid ,ËµÃ÷token±ØÈ»ÒÑ¾­ÑéÖ¤Í¨¹ıÁË 
+            //è¿™é‡Œèƒ½å¤Ÿæ‹¿åˆ°Userid ,è¯´æ˜tokenå¿…ç„¶å·²ç»éªŒè¯é€šè¿‡äº† 
             string? strUserId = HttpContext.User?.FindFirst(ClaimTypes.Sid)?.Value;
             if (string.IsNullOrWhiteSpace(strUserId))
             {
                 return await Task.FromResult(new JsonResult(new ApiDataResult<int>()
                 {
-                    Message = "Ã»ÓĞtokenÈ¨ÏŞ",
+                    Message = "æ²¡æœ‰tokenæƒé™",
                     Success = false,
                     OValue=401
                 }));
@@ -95,20 +95,20 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
             {
                 Data = _IMapper.Map<List<Sys_Menu>, List<SysRouteTreeDTO>>(menusTreeList),
                 Success = true,
-                Message = "»ñÈ¡²Ëµ¥ÁĞ±í"
+                Message = "è·å–èœå•åˆ—è¡¨"
             });
             return await Task.FromResult(result);
         }
 
         /// <summary>
-        /// ²Ëµ¥Ê÷·ÖÒ³ÁĞ±í
+        /// èœå•æ ‘åˆ†é¡µåˆ—è¡¨
         /// </summary>
         /// <param name="pageindex"></param>
         /// <param name="pageSize"></param>
         /// <param name="searchaString"></param>
         /// <returns></returns>
         [HttpGet()]
-        [Function(MenuTypeEnum.Button, "²Ëµ¥Ê÷·ÖÒ³ÁĞ±í")]
+        [Function(MenuTypeEnum.Button, "èœå•æ ‘åˆ†é¡µåˆ—è¡¨")]
         [Route("{pageindex:int}/{pageSize:int}/{searchaString}")]
         [Route("{pageindex:int}/{pageSize:int}")]
         public async Task<JsonResult> GetMenuTreePageAsync(int pageindex, int pageSize, string? searchaString = null)
@@ -119,13 +119,13 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
             {
                 Data = paging,
                 Success = true,
-                Message = "²Ëµ¥Ê÷ĞÎÁĞ±í"
+                Message = "èœå•æ ‘å½¢åˆ—è¡¨"
             }));
         }
 
         /// <summary>
-        /// »ñÈ¡Ò»¼¶²Ëµ¥
-        /// Ä¬ÈÏ´«µİ²ÎÊıÎª0,ÎŞÊµ¼ÊÒµÎñĞèÇó,½ö×÷ÎªÂ·ÓÉÆ¥ÅäÇø±ğ
+        /// è·å–ä¸€çº§èœå•
+        /// é»˜è®¤ä¼ é€’å‚æ•°ä¸º0,æ— å®é™…ä¸šåŠ¡éœ€æ±‚,ä»…ä½œä¸ºè·¯ç”±åŒ¹é…åŒºåˆ«
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
@@ -138,18 +138,18 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
             {
                 Data = _IMapper.Map<List<Sys_Menu>, List<SysMenuDTO>>(roleList),
                 Success = true,
-                Message = "»ñÈ¡Ò»¼¶²Ëµ¥"
+                Message = "è·å–ä¸€çº§èœå•"
             });
             return await Task.FromResult(result);
         }
 
         /// <summary>
-        /// ĞÂÔö²Ëµ¥
+        /// æ–°å¢èœå•
         /// </summary>
         /// <param name="menuDto"></param>
         /// <returns></returns>
         [HttpPost]
-        [Function(MenuTypeEnum.Button, "ĞÂÔö²Ëµ¥")]
+        [Function(MenuTypeEnum.Button, "æ–°å¢èœå•")]
         public async Task<JsonResult> AddMenuAsync(SysMenuDTO menuDto)
         { 
             ApiResult apiResult = await _IMenuManagerService.AddOrUpdateMenuAsync(menuDto);
@@ -157,12 +157,12 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
         }
 
         /// <summary>
-        /// ĞŞ¸Ä²Ëµ¥
+        /// ä¿®æ”¹èœå•
         /// </summary>
         /// <param name="menuDto"></param>
         /// <returns></returns>
         [HttpPut]
-        [Function(MenuTypeEnum.Button, "ĞŞ¸Ä²Ëµ¥")]
+        [Function(MenuTypeEnum.Button, "ä¿®æ”¹èœå•")]
         public async Task<JsonResult> UpdateMenuAsync(SysMenuDTO menuDto)
         {
             ApiResult apiResult = await _IMenuManagerService.AddOrUpdateMenuAsync(menuDto);
@@ -187,7 +187,7 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
                 return await Task.FromResult(new JsonResult(new ApiResult()
                 {
                     Success = false,
-                    Message = "ÒÑ´æÔÚ"
+                    Message = "å·²å­˜åœ¨"
                 }));
             }
             else
@@ -195,13 +195,13 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
                 return await Task.FromResult(new JsonResult(new ApiResult()
                 {
                     Success = true,
-                    Message = "ÑéÖ¤³É¹¦"
+                    Message = "éªŒè¯æˆåŠŸ"
                 }));
             }
         }
 
         /// <summary>
-        /// ¸ù¾İ²Ëµ¥Id ²éÑ¯²Ëµ¥¶ÔÏó
+        /// æ ¹æ®èœå•Id æŸ¥è¯¢èœå•å¯¹è±¡
         /// </summary>
         /// <param name="mapper"></param>
         /// <param name="id"></param>
@@ -217,17 +217,17 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
             {
                 Data = sysMenu,
                 Success = true,
-                Message = "»ñÈ¡°´Å¥Êı¾İ"
+                Message = "è·å–æŒ‰é’®æ•°æ®"
             }));
         }
 
 
         /// <summary>
-        /// É¾³ı²Ëµ¥×¢Òâ£º²Ëµ¥¾ß±¸²ã¼¶¹ØÏµ,É¾³ıÒ¶½Úµã£¬Èç¹û²Ëµ¥Ã»ÓĞ±»ÒıÓÃ¿ÉÒÔÖ±½ÓÉ¾³ı¡£Èç¹ûÉ¾³ıµÄ½Úµã¾ß±¸Ò¶½ÚµãÔò²»ÔÊĞíÉ¾³ı¡£
+        /// åˆ é™¤èœå•æ³¨æ„ï¼šèœå•å…·å¤‡å±‚çº§å…³ç³»,åˆ é™¤å¶èŠ‚ç‚¹ï¼Œå¦‚æœèœå•æ²¡æœ‰è¢«å¼•ç”¨å¯ä»¥ç›´æ¥åˆ é™¤ã€‚å¦‚æœåˆ é™¤çš„èŠ‚ç‚¹å…·å¤‡å¶èŠ‚ç‚¹åˆ™ä¸å…è®¸åˆ é™¤ã€‚
         /// </summary>
         /// <param name="menuId"></param>
         /// <returns></returns>
-        [Function(MenuTypeEnum.Button, "É¾³ı²Ëµ¥")]
+        [Function(MenuTypeEnum.Button, "åˆ é™¤èœå•")]
         [HttpDelete]
         [Route("{menuId:Guid}")]
         public async Task<JsonResult> DeleteMenuAsync(Guid menuId)
@@ -236,17 +236,17 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
             bool bResult = await _IMenuManagerService.DelMenuAsync(menuId);
             if (bResult)
             {
-                return await Task.FromResult<JsonResult>(new JsonResult(new ApiDataResult<bool>() { Success = true, Message = "²Ù×÷³É¹¦" }));
+                return await Task.FromResult<JsonResult>(new JsonResult(new ApiDataResult<bool>() { Success = true, Message = "æ“ä½œæˆåŠŸ" }));
             }
             else
             {
-                return await Task.FromResult<JsonResult>(new JsonResult(new ApiDataResult<bool>() { Success = false, Message = "É¾³ıÊ§°Ü" }));
+                return await Task.FromResult<JsonResult>(new JsonResult(new ApiDataResult<bool>() { Success = false, Message = "åˆ é™¤å¤±è´¥" }));
             }
 
         }
 
         /// <summary>
-        /// »ñÈ¡µ±Ç°ÓÃ»§µÄ°´Å¥È¨ÏŞ
+        /// è·å–å½“å‰ç”¨æˆ·çš„æŒ‰é’®æƒé™
         /// </summary>
         /// <param name="menuManagerService"></param>
         /// <param name="menuId"></param>
@@ -261,7 +261,7 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
             {
                 return await Task.FromResult(new JsonResult(new ApiResult()
                 {
-                    Message = "Ã»ÓĞtokenÈ¨ÏŞ",
+                    Message = "æ²¡æœ‰tokenæƒé™",
                     Success = false
                 }));
             }
@@ -273,7 +273,7 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
 
 
         /// <summary>
-        /// »ñÈ¡°´Å¥Êı¾İ
+        /// è·å–æŒ‰é’®æ•°æ®
         /// </summary>
         /// <param name="mapper"></param>
         /// <param name="id"></param>
@@ -290,18 +290,18 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
             {
                 Data = sysBtndto,
                 Success = true,
-                Message = "»ñÈ¡°´Å¥Êı¾İ"
+                Message = "è·å–æŒ‰é’®æ•°æ®"
             }));
         }
 
         /// <summary>
-        /// ĞŞ¸Ä°´Å¥ĞÅÏ¢
+        /// ä¿®æ”¹æŒ‰é’®ä¿¡æ¯
         /// </summary>
         /// <param name="mapper"></param>
         /// <param name="buttonDTO"></param>
         /// <returns></returns>
         [HttpPut]
-        [Function(MenuTypeEnum.Button, "ĞŞ¸Ä°´Å¥")]
+        [Function(MenuTypeEnum.Button, "ä¿®æ”¹æŒ‰é’®")]
         [Route("UpdateBtnAsync")] 
         public async Task<JsonResult> UpdateBtnAsync([FromServices] IMapper mapper, SysButtonDTO buttonDTO)
         {

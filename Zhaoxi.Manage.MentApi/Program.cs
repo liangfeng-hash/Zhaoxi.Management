@@ -1,4 +1,4 @@
-
+ï»¿
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -26,12 +26,12 @@ using System.Net.Mail;
 namespace Zhaoxi.Manage.mentApi
 {
     /// <summary>
-    /// ÏîÄ¿Æô¶¯Èë¿Ú
+    /// é¡¹ç›®å¯åŠ¨å…¥å£
     /// </summary>
     public class Program
     {
         /// <summary>
-        /// ³ÌĞòÈë¿Ú
+        /// ç¨‹åºå…¥å£
         /// </summary>
         /// <param name="args"></param>
         public static void Main(string[] args)
@@ -40,7 +40,7 @@ namespace Zhaoxi.Manage.mentApi
             WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 
-            //¼ÓÔØ×Ô¶¨Òå¸ñÊ½ÅäÖÃÎÄ¼ş
+            //åŠ è½½è‡ªå®šä¹‰æ ¼å¼é…ç½®æ–‡ä»¶
             builder.Configuration.AddJsonFile("baseMenu.json", true, true);
 
             if (builder.Configuration["IsInitDatabase"] == "1")
@@ -49,23 +49,23 @@ namespace Zhaoxi.Manage.mentApi
             }
 
             // Add services to the container. 
-            //nugetÒıÈë:  log4net
+            //nugetå¼•å…¥:  log4net
             //            Microsoft.Extensions.Logging.Log4Net.AspNetCore
             builder.Logging.AddLog4Net("CfgFile/log4net.Config");
 
-            builder.CrosDomainsPolicy(); //ÅäÖÃ¿çÓò
+            builder.CrosDomainsPolicy(); //é…ç½®è·¨åŸŸ
 
-            builder.AddSwaggerExt(); //ÅäÖÃSwagger
+            builder.AddSwaggerExt(); //é…ç½®Swagger
 
-            builder.RegistControllers();  //AddControllers Ïà¹Ø
+            builder.RegistControllers();  //AddControllers ç›¸å…³
 
-            builder.InitSqlSugar(); //×¢²áSqlSugar
+            builder.InitSqlSugar(); //æ³¨å†ŒSqlSugar
 
-            builder.RegistService(); //×¢²á³éÏóºÍ¾ßÌåÖ®¼äµÄ·şÎñ
+            builder.RegistService(); //æ³¨å†ŒæŠ½è±¡å’Œå…·ä½“ä¹‹é—´çš„æœåŠ¡
 
-            builder.Services.AddAutoMapper(typeof(AutoMapperConfigs));  //AutomapperÓ³Éä
+            builder.Services.AddAutoMapper(typeof(AutoMapperConfigs));  //Automapperæ˜ å°„
 
-            builder.AuthorizationExt(); //Jwt¼øÈ¨ÊÚÈ¨
+            builder.AuthorizationExt(); //Jwté‰´æƒæˆæƒ
 
             builder.Services.AddHealthChecks();
 
@@ -77,7 +77,7 @@ namespace Zhaoxi.Manage.mentApi
 
             app.MapHealthChecks("/health3").AllowAnonymous();
 
-            //¶ÁÈ¡ÎÄ¼şµÄÖĞ¼ä¼ş
+            //è¯»å–æ–‡ä»¶çš„ä¸­é—´ä»¶
             DownloadImagesExtensions.UseDownloadImages(app, Directory.GetCurrentDirectory());
 
             //// Configure the HTTP request pipeline.
@@ -86,7 +86,7 @@ namespace Zhaoxi.Manage.mentApi
             app.UseSwaggerExt();
             //}
 
-            app.UseCrosDomainsPolicy();//Ê¹ÓÃ¿çÓò²ßÂÔ
+            app.UseCrosDomainsPolicy();//ä½¿ç”¨è·¨åŸŸç­–ç•¥
 
             app.UseHttpsRedirection();
 

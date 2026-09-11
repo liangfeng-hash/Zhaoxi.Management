@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+ï»¿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
 using System.Text;
@@ -20,17 +20,17 @@ namespace Zhaoxi.Manage.IdentityApi
 
             builder.Services.AddAuthorization();
 
-            builder.SwaggerExt(); //SwaggerÅäÖÃ
+            builder.SwaggerExt(); //Swaggeré…ç½®
 
-            builder.CrosDomainsPolicy(); //ÅäÖÃ¿çÓò
+            builder.CrosDomainsPolicy(); //é…ç½®è·¨åŸŸ
 
             builder.Services.AddTransient<IUserManagerService, UserManagerService>();
-            //builder.Services.AddTransient<ICustomJWTService, CustomRSSJWTervice>();//·Ç¶Ô³Æ
-            builder.Services.AddTransient<CustomJWTService, CustomHSJWTService>();//¶Ô³Æ
+            //builder.Services.AddTransient<ICustomJWTService, CustomRSSJWTervice>();//éå¯¹ç§°
+            builder.Services.AddTransient<CustomJWTService, CustomHSJWTService>();//å¯¹ç§°
             builder.Services.Configure<JWTTokenOptions>(builder.Configuration.GetSection("JWTTokenOptions"));
 
 
-            builder.Services.AddAutoMapper(typeof(AutoMapperConfigs));   //AutomapperÓ³Éä
+            builder.Services.AddAutoMapper(typeof(AutoMapperConfigs));   //Automapperæ˜ å°„
 
             // Add services to the container.
             builder.InitSqlSugar();
@@ -42,65 +42,65 @@ namespace Zhaoxi.Manage.IdentityApi
             JWTTokenOptions tokenOptions = new JWTTokenOptions();
             builder.Configuration.Bind("JWTTokenOptions", tokenOptions);
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)//Scheme
-            .AddJwtBearer(options =>  //ÕâÀïÊÇÅäÖÃµÄ¼øÈ¨µÄÂß¼­
+            .AddJwtBearer(options =>  //è¿™é‡Œæ˜¯é…ç½®çš„é‰´æƒçš„é€»è¾‘
             {
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
-                    //JWTÓĞÒ»Ğ©Ä¬ÈÏµÄÊôĞÔ£¬¾ÍÊÇ¸ø¼øÈ¨Ê±¾Í¿ÉÒÔÉ¸Ñ¡ÁË
-                    ValidateIssuer = true,//ÊÇ·ñÑéÖ¤Issuer
-                    ValidateAudience = true,//ÊÇ·ñÑéÖ¤Audience
-                    ValidateLifetime = true,//ÊÇ·ñÑéÖ¤Ê§Ğ§Ê±¼ä
-                    ValidateIssuerSigningKey = true,//ÊÇ·ñÑéÖ¤SecurityKey
+                    //JWTæœ‰ä¸€äº›é»˜è®¤çš„å±æ€§ï¼Œå°±æ˜¯ç»™é‰´æƒæ—¶å°±å¯ä»¥ç­›é€‰äº†
+                    ValidateIssuer = true,//æ˜¯å¦éªŒè¯Issuer
+                    ValidateAudience = true,//æ˜¯å¦éªŒè¯Audience
+                    ValidateLifetime = true,//æ˜¯å¦éªŒè¯å¤±æ•ˆæ—¶é—´
+                    ValidateIssuerSigningKey = true,//æ˜¯å¦éªŒè¯SecurityKey
                     ValidAudience = tokenOptions.Audience,//
-                    ValidIssuer = tokenOptions.Issuer,//Issuer£¬ÕâÁ½ÏîºÍÇ°ÃæÇ©·¢jwtµÄÉèÖÃÒ»ÖÂ
+                    ValidIssuer = tokenOptions.Issuer,//Issuerï¼Œè¿™ä¸¤é¡¹å’Œå‰é¢ç­¾å‘jwtçš„è®¾ç½®ä¸€è‡´
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(tokenOptions.SecurityKey)),
                     ClockSkew = TimeSpan.FromSeconds(0)
                 };
 
                 options.Events = new JwtBearerEvents
                 {
-                    //´Ë´¦ÎªÈ¨ÏŞÑéÖ¤Ê§°Üºó´¥·¢µÄÊÂ¼ş£¬º­¸ÇµÄ³¡¾°£ºÃ»ÓĞtokenµÄ£¬token´íÎóµÄ
+                    //æ­¤å¤„ä¸ºæƒé™éªŒè¯å¤±è´¥åè§¦å‘çš„äº‹ä»¶ï¼Œæ¶µç›–çš„åœºæ™¯ï¼šæ²¡æœ‰tokençš„ï¼Œtokené”™è¯¯çš„
                     OnChallenge = context =>
                     {
-                        //´Ë´¦´úÂëÎªÖÕÖ¹.Net CoreÄ¬ÈÏµÄ·µ»ØÀàĞÍºÍÊı¾İ½á¹û£¬Õâ¸öºÜÖØÒªÅ¶£¬±ØĞë
+                        //æ­¤å¤„ä»£ç ä¸ºç»ˆæ­¢.Net Coreé»˜è®¤çš„è¿”å›ç±»å‹å’Œæ•°æ®ç»“æœï¼Œè¿™ä¸ªå¾ˆé‡è¦å“¦ï¼Œå¿…é¡»
                         context.HandleResponse();
-                        //×Ô¶¨Òå×Ô¼ºÏëÒª·µ»ØµÄÊı¾İ½á¹û£¬ÎÒÕâÀïÒª·µ»ØµÄÊÇJson¶ÔÏó£¬Í¨¹ıÒıÓÃNewtonsoft.Json¿â½øĞĞ×ª»»
+                        //è‡ªå®šä¹‰è‡ªå·±æƒ³è¦è¿”å›çš„æ•°æ®ç»“æœï¼Œæˆ‘è¿™é‡Œè¦è¿”å›çš„æ˜¯Jsonå¯¹è±¡ï¼Œé€šè¿‡å¼•ç”¨Newtonsoft.Jsonåº“è¿›è¡Œè½¬æ¢
                         var payload = JsonConvert.SerializeObject(new ApiDataResult<int>()
                         {
                             Success = false,
-                            Message = "¶Ô²»ÆğÃ»ÓĞÊÚÈ¨£¬Ã»ÓĞToken",
+                            Message = "å¯¹ä¸èµ·æ²¡æœ‰æˆæƒï¼Œæ²¡æœ‰Token",
                             Data = 0
                         }, new JsonSerializerSettings
                         {
                             ContractResolver = new Newtonsoft.Json.Serialization.CamelCasePropertyNamesContractResolver()
                         });
-                        //×Ô¶¨Òå·µ»ØµÄÊı¾İÀàĞÍ
+                        //è‡ªå®šä¹‰è¿”å›çš„æ•°æ®ç±»å‹
                         context.Response.ContentType = "application/json";
-                        //×Ô¶¨Òå·µ»Ø×´Ì¬Âë£¬Ä¬ÈÏÎª401 ÎÒÕâÀï¸Ä³É 200
+                        //è‡ªå®šä¹‰è¿”å›çŠ¶æ€ç ï¼Œé»˜è®¤ä¸º401 æˆ‘è¿™é‡Œæ”¹æˆ 200
                         context.Response.StatusCode = StatusCodes.Status200OK;
                         //context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                        //Êä³öJsonÊı¾İ½á¹û
+                        //è¾“å‡ºJsonæ•°æ®ç»“æœ
                         context.Response.WriteAsync(payload);
                         return Task.FromResult(0);
                     },
                     OnForbidden = context =>
                     {
-                        //×Ô¶¨Òå×Ô¼ºÏëÒª·µ»ØµÄÊı¾İ½á¹û£¬ÎÒÕâÀïÒª·µ»ØµÄÊÇJson¶ÔÏó£¬Í¨¹ıÒıÓÃNewtonsoft.Json¿â½øĞĞ×ª»»
+                        //è‡ªå®šä¹‰è‡ªå·±æƒ³è¦è¿”å›çš„æ•°æ®ç»“æœï¼Œæˆ‘è¿™é‡Œè¦è¿”å›çš„æ˜¯Jsonå¯¹è±¡ï¼Œé€šè¿‡å¼•ç”¨Newtonsoft.Jsonåº“è¿›è¡Œè½¬æ¢
                         var payload = JsonConvert.SerializeObject(new ApiDataResult<int>()
                         {
                             Success = false,
-                            Message = "¶Ô²»Æğ£¬Äú²»¾ß±¸·ÃÎÊ¸Ã¹¦ÄÜµÄÈ¨ÏŞ",
+                            Message = "å¯¹ä¸èµ·ï¼Œæ‚¨ä¸å…·å¤‡è®¿é—®è¯¥åŠŸèƒ½çš„æƒé™",
                             Data = 1
                         }, new JsonSerializerSettings
                         {
                             ContractResolver = new Newtonsoft.Json.Serialization.CamelCasePropertyNamesContractResolver()
                         });
-                        //×Ô¶¨Òå·µ»ØµÄÊı¾İÀàĞÍ
+                        //è‡ªå®šä¹‰è¿”å›çš„æ•°æ®ç±»å‹
                         context.Response.ContentType = "application/json";
-                        //×Ô¶¨Òå·µ»Ø×´Ì¬Âë£¬Ä¬ÈÏÎª403 ÎÒÕâÀï¸Ä³É 200
+                        //è‡ªå®šä¹‰è¿”å›çŠ¶æ€ç ï¼Œé»˜è®¤ä¸º403 æˆ‘è¿™é‡Œæ”¹æˆ 200
                         context.Response.StatusCode = StatusCodes.Status200OK;
                         //context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                        //Êä³öJsonÊı¾İ½á¹û
+                        //è¾“å‡ºJsonæ•°æ®ç»“æœ
                         context.Response.WriteAsync(payload);
                         return Task.FromResult(0);
                     }
@@ -118,13 +118,13 @@ namespace Zhaoxi.Manage.IdentityApi
 
             app.UseSwaggerExt();
 
-            app.UseCrosDomainsPolicy();//Ê¹ÓÃ¿çÓò²ßÂÔ
+            app.UseCrosDomainsPolicy();//ä½¿ç”¨è·¨åŸŸç­–ç•¥
 
             app.UseHttpsRedirection();
 
             app.UseAuthorization();
 
-            app.LoginApi();//µÇÂ¼
+            app.LoginApi();//ç™»å½•
 
             app.Run();
         }

@@ -1,4 +1,4 @@
-using AutoMapper;
+ï»¿using AutoMapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -19,10 +19,10 @@ using Zhaoxi.Manage.Models.Entity;
 namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
 {
     /// <summary>
-    /// ÓÃ»§¹ÜÀí
+    /// ç”¨æˆ·ç®¡ç†
     /// </summary>
     [ApiController]
-    [Function(MenuTypeEnum.Menu, "ÓÃ»§¹ÜÀí", null, "user", "../views/Home/user/info/index.vue")]
+    [Function(MenuTypeEnum.Menu, "ç”¨æˆ·ç®¡ç†", null, "user", "../views/Home/user/info/index.vue")]
     [ApiExplorerSettings(IgnoreApi = false, GroupName = nameof(ApiVersions.V1))]
     [Route("api/[controller]")]
     //[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Policy = "MenuPolicy")]
@@ -36,7 +36,7 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
         private readonly IUserManagerService _IUserManagerService;
 
         /// <summary>
-        /// ¹¹Ôìº¯Êı
+        /// æ„é€ å‡½æ•°
         /// </summary>
         /// <param name="logger"></param>
         /// <param name="iMenuManagerService"></param>
@@ -49,15 +49,15 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
         }
 
         /// <summary>
-        /// ÓÃ»§·ÖÒ³ÁĞ±í
+        /// ç”¨æˆ·åˆ†é¡µåˆ—è¡¨
         /// </summary>
         /// <param name="userManagerService"></param>
         /// <param name="mapper"></param>
-        /// <param name="pageindex">µÚ¼¸Ò³</param>
-        /// <param name="pageSize">Ã¿Ò³¶àÉÙÌõ</param>
-        /// <param name="searchaString">¹Ø¼ü×Ö</param>
+        /// <param name="pageindex">ç¬¬å‡ é¡µ</param>
+        /// <param name="pageSize">æ¯é¡µå¤šå°‘æ¡</param>
+        /// <param name="searchaString">å…³é”®å­—</param>
         /// <returns></returns>
-        [Function(MenuTypeEnum.Button, "ÓÃ»§·ÖÒ³ÁĞ±í")]
+        [Function(MenuTypeEnum.Button, "ç”¨æˆ·åˆ†é¡µåˆ—è¡¨")]
         [HttpGet()]
         [Route("{pageindex:int}/{pageSize:int}")]
         [Route("{pageindex:int}/{pageSize:int}/{searchaString}")]
@@ -66,25 +66,25 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
         { 
             Expressionable<Sys_User> expressionable = new Expressionable<Sys_User>();
 
-            //¹ıÂËµô¹ÜÀíÔ±µÄÊı¾İ
+            //è¿‡æ»¤æ‰ç®¡ç†å‘˜çš„æ•°æ®
             expressionable.And(u => u.UserType == (int)UserTypeEnum.GeneralUser);
 
             expressionable.AndIF(!string.IsNullOrWhiteSpace(searchaString), u => u.Name.Contains(searchaString));
             PagingData<Sys_User> paging = userManagerService.QueryPage<Sys_User>(expressionable.ToExpression(), pageSize, pageindex, c => c.CreateTime, false);
             PagingData<SysUserDTO> pagingResult = mapper.Map<PagingData<Sys_User>, PagingData<SysUserDTO>>(paging);
-            var result = new JsonResult(new ApiDataResult<PagingData<SysUserDTO>>() { Data = pagingResult, Success = true, Message = "ÓÃ»§·ÖÒ³ÁĞ±í" });
+            var result = new JsonResult(new ApiDataResult<PagingData<SysUserDTO>>() { Data = pagingResult, Success = true, Message = "ç”¨æˆ·åˆ†é¡µåˆ—è¡¨" });
             return await Task.FromResult(result);
         }
 
         /// <summary>
-        /// Ìí¼ÓÓÃ»§
+        /// æ·»åŠ ç”¨æˆ·
         /// </summary>
         /// <param name="userManagerService"></param>
         /// <param name="mapper"></param>
-        /// <param name="userDTO">ÓÃ»§ĞÅÏ¢</param>
+        /// <param name="userDTO">ç”¨æˆ·ä¿¡æ¯</param>
         /// <returns></returns>
         [HttpPost]
-        [Function(MenuTypeEnum.Button, "Ìí¼ÓÓÃ»§")]
+        [Function(MenuTypeEnum.Button, "æ·»åŠ ç”¨æˆ·")]
         [CustomValidateParaActionFilter]
         public async Task<JsonResult> AddUserAsync([FromServices] IUserManagerService userManagerService, [FromServices] IMapper mapper, SysUserDTO userDTO)
         {
@@ -93,35 +93,35 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
             adduser.Status = userDTO.IsEnabled ? (int)StatusEnum.Normal : (int)StatusEnum.Frozen;
             adduser.UserType = (int)UserTypeEnum.GeneralUser;
             Sys_User user = userManagerService.Insert(adduser);
-            var result = new JsonResult(new ApiDataResult<Sys_User>() { Data = adduser, Success = true, Message = "Ìí¼ÓÓÃ»§" });
+            var result = new JsonResult(new ApiDataResult<Sys_User>() { Data = adduser, Success = true, Message = "æ·»åŠ ç”¨æˆ·" });
             if (user.UserId <= 0)
             {
-                result = new JsonResult(new ApiDataResult<Sys_User>() { Data = adduser, Success = false, Message = "Ìí¼ÓÓÃ»§Ê§°Ü" });
+                result = new JsonResult(new ApiDataResult<Sys_User>() { Data = adduser, Success = false, Message = "æ·»åŠ ç”¨æˆ·å¤±è´¥" });
             }
             return await Task.FromResult(result);
         }
 
         /// <summary>
-        /// ĞŞ¸ÄÓÃ»§ĞÅÏ¢
+        /// ä¿®æ”¹ç”¨æˆ·ä¿¡æ¯
         /// </summary>
         /// <param name="userManagerService"></param>
         /// <param name="mapper"></param>
-        /// <param name="userDTO">ĞŞ¸ÄµÄÓÃ»§ĞÅÏ¢</param>
+        /// <param name="userDTO">ä¿®æ”¹çš„ç”¨æˆ·ä¿¡æ¯</param>
         /// <returns></returns>
         [HttpPut]
-        [Function(MenuTypeEnum.Button, "ĞŞ¸ÄÓÃ»§ĞÅÏ¢")] 
+        [Function(MenuTypeEnum.Button, "ä¿®æ”¹ç”¨æˆ·ä¿¡æ¯")] 
         [CustomValidateParaActionFilter]
         public async Task<JsonResult> PutUserAsync([FromServices] IUserManagerService userManagerService, [FromServices] IMapper mapper, SysUserDTO userDTO)
         {
             Sys_User adduser = mapper.Map<SysUserDTO, Sys_User>(userDTO);
             adduser.Status = userDTO.IsEnabled ? (int)StatusEnum.Normal : (int)StatusEnum.Frozen;
             await userManagerService.UpdateAsync(adduser);
-            JsonResult result = new JsonResult(new ApiDataResult<Sys_User>() { Data = adduser, Success = true, Message = "ĞŞ¸ÄÓÃ»§ĞÅÏ¢" });
+            JsonResult result = new JsonResult(new ApiDataResult<Sys_User>() { Data = adduser, Success = true, Message = "ä¿®æ”¹ç”¨æˆ·ä¿¡æ¯" });
             return await Task.FromResult(result);
         }
 
         /// <summary>
-        /// ¸ù¾İId²éÑ¯ÓÃ»§
+        /// æ ¹æ®IdæŸ¥è¯¢ç”¨æˆ·
         /// </summary>
         /// <param name="mapper"></param>
         /// <param name="userId"></param>
@@ -136,7 +136,7 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
             var result = new JsonResult(new ApiDataResult<SysUserDTO>()
             {
                 Data = userinfo,
-                Message = "»ñÈ¡Ê÷ĞÎ½á¹¹",
+                Message = "è·å–æ ‘å½¢ç»“æ„",
                 Success = true
             });
             return await Task.FromResult(result);
@@ -144,33 +144,33 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
 
 
         /// <summary>
-        /// É¾³ıÓÃ»§ĞÅÏ¢
+        /// åˆ é™¤ç”¨æˆ·ä¿¡æ¯
         /// </summary>
         /// <param name="userManagerService"></param>
-        /// <param name="userId">ÓÃ»§Id</param>
+        /// <param name="userId">ç”¨æˆ·Id</param>
         /// <returns></returns>
-        [Function(MenuTypeEnum.Button, "É¾³ıÓÃ»§ĞÅÏ¢")]
+        [Function(MenuTypeEnum.Button, "åˆ é™¤ç”¨æˆ·ä¿¡æ¯")]
         [HttpDelete()]
         [Route("{userId:int}")]
         public async Task<JsonResult> DeleteUserAsync([FromServices] IUserManagerService userManagerService, int userId)
         {
             Sys_User user = userManagerService.Find<Sys_User>(userId);
             user.Status = (int)StatusEnum.Deleted;
-            var result = new JsonResult(new ApiDataResult<Sys_User>() { Data = user, Success = false, Message = "É¾³ıÓÃ»§ĞÅÏ¢Ê§°Ü" });
+            var result = new JsonResult(new ApiDataResult<Sys_User>() { Data = user, Success = false, Message = "åˆ é™¤ç”¨æˆ·ä¿¡æ¯å¤±è´¥" });
             if (await userManagerService.UpdateAsync<Sys_User>(user))
             {
-                result = new JsonResult(new ApiDataResult<Sys_User>() { Data = user, Success = true, Message = "É¾³ıÓÃ»§ĞÅÏ¢" });
+                result = new JsonResult(new ApiDataResult<Sys_User>() { Data = user, Success = true, Message = "åˆ é™¤ç”¨æˆ·ä¿¡æ¯" });
             }
             return await Task.FromResult(result);
         }
 
         /// <summary>
-        /// ¶³½áÓÃ»§
+        /// å†»ç»“ç”¨æˆ·
         /// </summary>
         /// <param name="userManagerService"></param>
         /// <param name="userId"></param>
         /// <returns></returns>
-        [Function(MenuTypeEnum.Button, "¶³½áÓÃ»§")]
+        [Function(MenuTypeEnum.Button, "å†»ç»“ç”¨æˆ·")]
         [HttpPut()]
         [Route("FrozenUser/{userId:int}")]
         public async Task<JsonResult> FrozenUserAsync([FromServices] IUserManagerService userManagerService, int userId)
@@ -178,25 +178,25 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
             Sys_User user = userManagerService.Find<Sys_User>(userId);
             if (user == null)
             {
-                return new JsonResult(new ApiDataResult<Sys_User>() { Data = user, Success = false, Message = "ÓÃ»§²»´æÔÚ" });
+                return new JsonResult(new ApiDataResult<Sys_User>() { Data = user, Success = false, Message = "ç”¨æˆ·ä¸å­˜åœ¨" });
             }
             user.Status = (int)StatusEnum.Frozen;
-            JsonResult result = new JsonResult(new ApiDataResult<Sys_User>() { Data = user, Success = false, Message = "²Ù×÷Ê§°ÜÁË" });
+            JsonResult result = new JsonResult(new ApiDataResult<Sys_User>() { Data = user, Success = false, Message = "æ“ä½œå¤±è´¥äº†" });
             if (await userManagerService.UpdateAsync<Sys_User>(user))
             {
-                result = new JsonResult(new ApiDataResult<Sys_User>() { Data = user, Success = true, Message = "²Ù×÷³É¹¦" });
+                result = new JsonResult(new ApiDataResult<Sys_User>() { Data = user, Success = true, Message = "æ“ä½œæˆåŠŸ" });
             }
             return await Task.FromResult(result);
         }
 
 
         /// <summary>
-        /// ½â¶³ÓÃ»§
+        /// è§£å†»ç”¨æˆ·
         /// </summary>
         /// <param name="userManagerService"></param>
         /// <param name="userId"></param>
         /// <returns></returns>
-        [Function(MenuTypeEnum.Button, "½â¶³ÓÃ»§")]
+        [Function(MenuTypeEnum.Button, "è§£å†»ç”¨æˆ·")]
         [HttpPut()]
         [Route("NormalUser/{userId:int}")]
         public async Task<JsonResult> NormalUserAsync([FromServices] IUserManagerService userManagerService, int userId)
@@ -204,21 +204,21 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
             Sys_User user = userManagerService.Find<Sys_User>(userId);
             if (user == null)
             {
-                return new JsonResult(new ApiDataResult<Sys_User>() { Data = user, Success = false, Message = "ÓÃ»§²»´æÔÚ" });
+                return new JsonResult(new ApiDataResult<Sys_User>() { Data = user, Success = false, Message = "ç”¨æˆ·ä¸å­˜åœ¨" });
             }
             user.Status = (int)StatusEnum.Normal;
-            JsonResult result = new JsonResult(new ApiDataResult<Sys_User>() { Data = user, Success = false, Message = "²Ù×÷Ê§°ÜÁË" });
+            JsonResult result = new JsonResult(new ApiDataResult<Sys_User>() { Data = user, Success = false, Message = "æ“ä½œå¤±è´¥äº†" });
             if (await userManagerService.UpdateAsync<Sys_User>(user))
             {
-                result = new JsonResult(new ApiDataResult<Sys_User>() { Data = user, Success = true, Message = "²Ù×÷³É¹¦" });
+                result = new JsonResult(new ApiDataResult<Sys_User>() { Data = user, Success = true, Message = "æ“ä½œæˆåŠŸ" });
             }
             return await Task.FromResult(result);
         }
 
 
         /// <summary>
-        /// »ñÈ¡ËùÓĞµÄ²Ëµ¥°´Å¥Ê÷½á¹¹Êı¾İ
-        /// ÓÃÓÚ¸øÄ³ÓÃ»§Ö±½Ó·ÖÅä²Ëµ¥È¨ÏŞ
+        /// è·å–æ‰€æœ‰çš„èœå•æŒ‰é’®æ ‘ç»“æ„æ•°æ®
+        /// ç”¨äºç»™æŸç”¨æˆ·ç›´æ¥åˆ†é…èœå•æƒé™
         /// </summary>
         /// <param name="mapper"></param>
         /// <param name="userId"></param>
@@ -233,28 +233,28 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
             {
                 Data = tup.Item1,
                 OValue = tup.Item2,
-                Message = "»ñÈ¡Ê÷ĞÎ½á¹¹",
+                Message = "è·å–æ ‘å½¢ç»“æ„",
                 Success = true
             });
             return await Task.FromResult(result);
         }
 
         /// <summary>
-        /// ÉèÖÃÓÃ»§²Ëµ¥
+        /// è®¾ç½®ç”¨æˆ·èœå•
         /// </summary>
         /// <param name="userManagerService"></param>
         /// <param name="setUserMenue"></param>
         /// <returns></returns>
-        [Function(MenuTypeEnum.Button, "ÉèÖÃÓÃ»§²Ëµ¥")]
+        [Function(MenuTypeEnum.Button, "è®¾ç½®ç”¨æˆ·èœå•")]
         [HttpPost]
         [Route("{userId:int}")]
         public async Task<JsonResult> SetUserMenuAndBtnAsync([FromServices] IUserManagerService userManagerService, SetUserMenuBtnModel setUserMenue)
         {
             bool bResult = await userManagerService.SetUserMenuAndBtnAsync(setUserMenue);
-            string message = "²Ù×÷Ê§°Ü";
+            string message = "æ“ä½œå¤±è´¥";
             if (bResult)
             {
-                message = "²Ù×÷³É¹¦";
+                message = "æ“ä½œæˆåŠŸ";
             }
             JsonResult result = new JsonResult(new ApiResult()
             {
@@ -266,12 +266,12 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
 
 
         /// <summary>
-        /// ÉèÖÃÓÃ»§½ÇÉ«
+        /// è®¾ç½®ç”¨æˆ·è§’è‰²
         /// </summary>
         /// <param name="userRoleMenuService"></param>
         /// <param name="selectRoles"></param>
         /// <returns></returns>
-        [Function(MenuTypeEnum.Button, "ÉèÖÃÓÃ»§½ÇÉ«")]
+        [Function(MenuTypeEnum.Button, "è®¾ç½®ç”¨æˆ·è§’è‰²")]
         [HttpPut]
         [Route("SetUserRoleAsync")]
         public async Task<JsonResult> SetUserRoleAsync([FromServices] IUserRoleMenuService userRoleMenuService, SetUserRoleModel selectRoles)

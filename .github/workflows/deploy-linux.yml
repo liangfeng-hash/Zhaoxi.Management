@@ -36,6 +36,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: 检查源文件编码
+        # Linux 上编译时，非 UTF-8 的 .cs 里的中文会被按 UTF-8 解码成乱码，
+        # 进而被 InitDatabase 写进数据库（菜单、按钮名显示成 ???）。Windows 上编译不会暴露这个问题
+        run: |
+          python3 - <<'PY'
+          import pathlib, sys
+          bad = []
+          for p in pathlib.Path(".").rglob("*.cs"):
+              if {"bin", "obj", ".git"} & set(p.parts):
+                  continue
+              try:
+                  p.read_bytes().decode("utf-8")
+              except UnicodeDecodeError:
+                  bad.append(str(p))
+          if bad:
+              print("❌ 以下 .cs 不是 UTF-8（多为 GBK），在 Linux 上编译会把中文变成乱码：")
+              print("\n".join(bad))
+              sys.exit(1)
+          print("✅ 所有 .cs 都是 UTF-8")
+          PY
+
       - name: 计算镜像 tag
         id: meta
         run: |

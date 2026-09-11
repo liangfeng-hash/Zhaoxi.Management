@@ -1,4 +1,4 @@
-using AutoMapper;
+ï»¿using AutoMapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -17,10 +17,10 @@ using Zhaoxi.Manage.Models.Entity;
 namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
 {
     /// <summary>
-    /// ½ÇÉ«¹ÜÀí
+    /// è§’è‰²ç®¡ç†
     /// </summary>
     [ApiController]
-    [Function(MenuTypeEnum.Menu, "½ÇÉ«¹ÜÀí", null, "role", "../views/Home/role/info/index.vue")]
+    [Function(MenuTypeEnum.Menu, "è§’è‰²ç®¡ç†", null, "role", "../views/Home/role/info/index.vue")]
     [ApiExplorerSettings(IgnoreApi = false, GroupName = nameof(ApiVersions.V1))]
     [Route("api/[controller]")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Policy = "btnPolicy")]
@@ -28,7 +28,7 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
     {
         private readonly ILogger<RoleController> _logger;
         /// <summary>
-        /// ¹¹Ôìº¯Êı
+        /// æ„é€ å‡½æ•°
         /// </summary>
         /// <param name="logger"></param>
         public RoleController(ILogger<RoleController> logger)
@@ -37,7 +37,7 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
         }
 
         /// <summary>
-        /// ½ÇÉ«·ÖÒ³ÁĞ±í
+        /// è§’è‰²åˆ†é¡µåˆ—è¡¨
         /// </summary>
         /// <param name="roleManagerService"></param>
         /// <param name="mapper"></param>
@@ -45,7 +45,7 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
         /// <param name="pageSize"></param>
         /// <param name="searchaString"></param>
         /// <returns></returns>
-        [Function(MenuTypeEnum.Button, "½ÇÉ«·ÖÒ³ÁĞ±í")]
+        [Function(MenuTypeEnum.Button, "è§’è‰²åˆ†é¡µåˆ—è¡¨")]
         [HttpGet()]
         [Route("{pageindex:int}/{pageSize:int}")]
         [Route("{pageindex:int}/{pageSize:int}/{searchaString}")]
@@ -56,19 +56,19 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
             PagingData<Sys_Role> paging = roleManagerService.QueryPage<Sys_Role>(expressionable.ToExpression(), pageSize, pageindex, c => c.CreateTime, false);
 
             PagingData<SysRoleDTO> pagingResult = mapper.Map<PagingData<Sys_Role>, PagingData<SysRoleDTO>>(paging);
-            var result = new JsonResult(new ApiDataResult<PagingData<SysRoleDTO>>() { Data = pagingResult, Success = true, Message = "½ÇÉ«·ÖÒ³ÁĞ±í" });
+            var result = new JsonResult(new ApiDataResult<PagingData<SysRoleDTO>>() { Data = pagingResult, Success = true, Message = "è§’è‰²åˆ†é¡µåˆ—è¡¨" });
             return await Task.FromResult(result);
         }
 
 
         /// <summary>
-        /// ĞÂÔö½ÇÉ«ĞÅÏ¢
+        /// æ–°å¢è§’è‰²ä¿¡æ¯
         /// </summary>
         /// <param name="roleManagerService"></param>
         /// <param name="mapper"></param>
         /// <param name="roleDTO"></param>
         /// <returns></returns>
-        [Function(MenuTypeEnum.Button, "ĞÂÔö½ÇÉ«ĞÅÏ¢")]
+        [Function(MenuTypeEnum.Button, "æ–°å¢è§’è‰²ä¿¡æ¯")]
         [HttpPost]
         [CustomValidateParaActionFilter]
         public async Task<JsonResult> AddRoleAsync([FromServices] IRoleManagerService roleManagerService, [FromServices] IMapper mapper, SysRoleDTO roleDTO)
@@ -76,7 +76,7 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
             int roelCount = await roleManagerService.Query<Sys_Role>(c => c.RoleName.Equals(roleDTO.RoleName)).CountAsync();
             if (roelCount > 0)
             {
-                return await Task.FromResult(new JsonResult(new ApiResult() { Success = false, Message = "½ÇÉ«Ãû³ÆÒÑ´æÔÚ" }));
+                return await Task.FromResult(new JsonResult(new ApiResult() { Success = false, Message = "è§’è‰²åç§°å·²å­˜åœ¨" }));
             }
 
             roleDTO.Status = roleDTO.IsEnabled.Value ? (int)StatusEnum.Normal : (int)StatusEnum.Frozen;
@@ -87,47 +87,47 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
         }
 
         /// <summary>
-        /// ĞŞ¸Ä½ÇÉ«ĞÅÏ¢
+        /// ä¿®æ”¹è§’è‰²ä¿¡æ¯
         /// </summary>
         /// <param name="roleManagerService"></param>
         /// <param name="mapper"></param>
         /// <param name="roleDTO"></param>
         /// <returns></returns>
-        [Function(MenuTypeEnum.Button, "ĞŞ¸Ä½ÇÉ«ĞÅÏ¢")]
+        [Function(MenuTypeEnum.Button, "ä¿®æ”¹è§’è‰²ä¿¡æ¯")]
         [HttpPut]
         [CustomValidateParaActionFilter]
         public async Task<JsonResult> PutRoleAsync([FromServices] IRoleManagerService roleManagerService, [FromServices] IMapper mapper, SysRoleDTO roleDTO)
         {
             Sys_Role upRole = mapper.Map<SysRoleDTO, Sys_Role>(roleDTO);
             await roleManagerService.UpdateAsync(upRole);
-            var result = new JsonResult(new ApiDataResult<Sys_Role>() { Data = upRole, Success = true, Message = "ĞŞ¸Ä½ÇÉ«ĞÅÏ¢" });
+            var result = new JsonResult(new ApiDataResult<Sys_Role>() { Data = upRole, Success = true, Message = "ä¿®æ”¹è§’è‰²ä¿¡æ¯" });
             return await Task.FromResult(result);
         }
 
         /// <summary>
-        /// É¾³ı½ÇÉ«ĞÅÏ¢
+        /// åˆ é™¤è§’è‰²ä¿¡æ¯
         /// </summary>
         /// <param name="roleManagerService"></param>
         /// <param name="roleId"></param>
         /// <returns></returns>
-        [Function(MenuTypeEnum.Button, "É¾³ı½ÇÉ«ĞÅÏ¢")]
+        [Function(MenuTypeEnum.Button, "åˆ é™¤è§’è‰²ä¿¡æ¯")]
         [HttpDelete]
         [Route("{roleId:int}")]
         public async Task<JsonResult> DeleteRoleAsync([FromServices] IRoleManagerService roleManagerService, int roleId)
         {
             roleManagerService.Delete<Sys_Role>(roleId);
-            var result = new JsonResult(new ApiDataResult<int>() { Data = roleId, Success = true, Message = "É¾³ı½ÇÉ«ĞÅÏ¢" });
+            var result = new JsonResult(new ApiDataResult<int>() { Data = roleId, Success = true, Message = "åˆ é™¤è§’è‰²ä¿¡æ¯" });
             return await Task.FromResult(result);
         }
 
 
         /// <summary>
-        /// ÉèÖÃ½ÇÉ«²Ëµ¥°´Å¥
+        /// è®¾ç½®è§’è‰²èœå•æŒ‰é’®
         /// </summary>
         /// <param name="roleManagerService"></param>
         /// <param name="setRoleMenuBtn"></param>
         /// <returns></returns>
-        [Function(MenuTypeEnum.Button, "ÉèÖÃ½ÇÉ«²Ëµ¥")]
+        [Function(MenuTypeEnum.Button, "è®¾ç½®è§’è‰²èœå•")]
         [HttpPut]
         [Route("SetRoleMenusAsync")]
         public async Task<JsonResult> SetRoleMenusAsync([FromServices] IRoleManagerService roleManagerService, SetRoleMenuBtn setRoleMenuBtn)
@@ -139,7 +139,7 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
 
 
         /// <summary>
-        /// »ñÈ¡½ÇÉ«ĞÅÏ¢-ÓÃ×÷·ÖÅäÓÃ»§½ÇÉ«
+        /// è·å–è§’è‰²ä¿¡æ¯-ç”¨ä½œåˆ†é…ç”¨æˆ·è§’è‰²
         /// </summary>
         /// <param name="roleManagerService"></param>
         /// <param name="userid"></param>
@@ -154,7 +154,7 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
             {
                 Data = apiResult,
                 Success = true,
-                Message = "»ñÈ¡½ÇÉ«ĞÅÏ¢-ÓÃ×÷·ÖÅäÓÃ»§½ÇÉ«",
+                Message = "è·å–è§’è‰²ä¿¡æ¯-ç”¨ä½œåˆ†é…ç”¨æˆ·è§’è‰²",
                 OValue = apiResult.Where(c => c.Selected == true).ToList()
             });
             return await Task.FromResult(result);
@@ -162,8 +162,8 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
 
 
         /// <summary>
-        /// ·µ»Ø´øÓĞ²ã¼¶µÄ²Ëµ¥ĞÅÏ¢
-        /// ÓÃÓÚ ¸øÄ³½ÇÉ«·ÖÅä²Ëµ¥
+        /// è¿”å›å¸¦æœ‰å±‚çº§çš„èœå•ä¿¡æ¯
+        /// ç”¨äº ç»™æŸè§’è‰²åˆ†é…èœå•
         /// </summary>
         /// <param name="roleManagerService"></param>
         /// <param name="mapper"></param>
@@ -180,15 +180,15 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
             {
                 Data = tup.Item1,
                 OValue = tup.Item2,
-                Message = "»ñÈ¡Ê÷ĞÎ½á¹¹",
+                Message = "è·å–æ ‘å½¢ç»“æ„",
                 Success = true
             });
             return await Task.FromResult(result);
         }
 
         /// <summary>
-        /// ·ÖÒ³»ñÈ¡ÓÃ»§ÁĞ±í
-        /// ÓÃ×÷ÅúÁ¿·ÖÅäÓÃ»§½ÇÉ«
+        /// åˆ†é¡µè·å–ç”¨æˆ·åˆ—è¡¨
+        /// ç”¨ä½œæ‰¹é‡åˆ†é…ç”¨æˆ·è§’è‰²
         /// </summary>
         /// <param name="roleManagerService"></param>
         /// <param name="mapper"></param>
@@ -209,7 +209,7 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
                 Data = tupuserPagingData.Item1,
                 OValue = tupuserPagingData.Item2,
                 Success = true,
-                Message = "½ÇÉ«·ÖÒ³ÁĞ±í"
+                Message = "è§’è‰²åˆ†é¡µåˆ—è¡¨"
             });
 
             return await Task.FromResult(result);
@@ -217,15 +217,15 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
 
 
         /// <summary>
-        /// ÅúÁ¿·ÖÅäÓÃ»§½ÇÉ«
-        /// Ìá½»Êı¾İ 
+        /// æ‰¹é‡åˆ†é…ç”¨æˆ·è§’è‰²
+        /// æäº¤æ•°æ® 
         /// </summary>
         /// <param name="roleManagerService"></param>
         /// <param name="setRoleUser"></param>
         /// <returns></returns>
 
         [HttpPut]
-        [Function(MenuTypeEnum.Button, "ÅúÁ¿·ÖÅäÓÃ»§½ÇÉ«")]
+        [Function(MenuTypeEnum.Button, "æ‰¹é‡åˆ†é…ç”¨æˆ·è§’è‰²")]
         [Route("BatchSetUserRoleAsync")]
         public async Task<JsonResult> BatchSetUserRoleAsync([FromServices] IRoleManagerService roleManagerService, SetRoleUserModel setRoleUser)
         {

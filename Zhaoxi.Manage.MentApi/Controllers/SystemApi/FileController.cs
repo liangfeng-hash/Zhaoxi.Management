@@ -1,4 +1,4 @@
-using AutoMapper;
+ï»¿using AutoMapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -20,7 +20,7 @@ using Zhaoxi.Manage.Models.Entity;
 namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
 {
     /// <summary>
-    /// ÎÄ¼şÉÏ´«²Ù×÷
+    /// æ–‡ä»¶ä¸Šä¼ æ“ä½œ
     /// </summary>
     [ApiController]
     [ApiExplorerSettings(IgnoreApi = false, GroupName = nameof(ApiVersions.V1))]
@@ -31,7 +31,7 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
 
 
         /// <summary>
-        /// ¡¾¹¹Ôìº¯Êı¡¿
+        /// ã€æ„é€ å‡½æ•°ã€‘
         /// </summary>
         /// <param name="logger"></param>
         public FileController(ILogger<FileController> logger)
@@ -41,14 +41,14 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
 
 
         /// <summary>
-        /// ÎÄ¼şÉÏ´«Api
+        /// æ–‡ä»¶ä¸Šä¼ Api
         /// </summary>
         /// <param name="file"></param>
         [HttpPost]
         public JsonResult UploadFiles([FromForm] IFormFile file)
         {
             string suffix = string.Empty;
-            #region »ñÈ¡ÎÄ¼şºó×º 
+            #region è·å–æ–‡ä»¶åç¼€ 
             string filename = file.FileName.Trim();
             int index = filename.LastIndexOf(".");
             if (index > 0 && index < filename.Length - 1)
@@ -57,7 +57,7 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
             }
             #endregion
 
-            #region ÖØĞÂÃüÃû±£´æÎÄ¼şµÄÃû×Ö 
+            #region é‡æ–°å‘½åä¿å­˜æ–‡ä»¶çš„åå­— 
             string saveDirectory = $"FileUpload\\{DateTime.Now.ToString("yyyy-MM-dd")}";
             string allSavePath = $"{Directory.GetCurrentDirectory()}\\{saveDirectory}";
             if (Directory.Exists(allSavePath) == false)
@@ -65,10 +65,10 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
                 Directory.CreateDirectory(allSavePath);
             }
 
-            //±£´æµÄĞÂÎÄ¼şÃû
+            //ä¿å­˜çš„æ–°æ–‡ä»¶å
             string newFileName = $"{DateTime.Now.ToString("yyyyMMddHHmmss")}_{Guid.NewGuid().ToString()}.{suffix}";
 
-            //±£´æµÄÎÄ¼şÃû
+            //ä¿å­˜çš„æ–‡ä»¶å
             string allSaveFilePath = $"{allSavePath}\\{newFileName}";
             #endregion
             try
@@ -81,7 +81,7 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
                 return new JsonResult(new ApiDataResult<string>()
                 {
                     Success = true,
-                    Message = "ÎÄ¼şÉÏ´«³É¹¦",
+                    Message = "æ–‡ä»¶ä¸Šä¼ æˆåŠŸ",
                     Data = $"{saveDirectory}\\{newFileName}"
                 });
             }
@@ -91,7 +91,7 @@ namespace Zhaoxi.Manage.MentApi.Controllers.SystemApi
                 return new JsonResult(new ApiDataResult<string>()
                 {
                     Success = false,
-                    Message = "ÎÄ¼şÉÏ´«Ê§°ÜÁË"
+                    Message = "æ–‡ä»¶ä¸Šä¼ å¤±è´¥äº†"
                 });
             }
         }
