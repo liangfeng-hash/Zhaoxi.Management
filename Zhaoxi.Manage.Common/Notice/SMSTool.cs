@@ -27,15 +27,12 @@ namespace Zhaoxi.Manage.Common.Notice
         /// <returns></returns>
         public static (bool, int, string) SendValidateCode(string phoneNumber, string code)
         {
-            /*
-                regionId:cn-hangzhou
-                accessKeyId: ***REMOVED***
-                accessKeySecret: ***REMOVED***
-             */
+            // 凭据不写进代码，从环境变量读取（本项目未启用短信功能）
             try
             {
-                IClientProfile profile = DefaultProfile.GetProfile("cn-hangzhou", "***REMOVED***",
-                    "***REMOVED***");
+                IClientProfile profile = DefaultProfile.GetProfile("cn-hangzhou",
+                    Environment.GetEnvironmentVariable("ALIYUN_SMS_ACCESS_KEY_ID"),
+                    Environment.GetEnvironmentVariable("ALIYUN_SMS_ACCESS_KEY_SECRET"));
 
                 DefaultAcsClient client = new DefaultAcsClient(profile);
                 CommonRequest request = new CommonRequest();
